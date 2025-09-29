@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'attendance_screen.dart';
+import 'qr_generator_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -82,6 +83,23 @@ class HomeScreen extends StatelessWidget {
               },
             ),
             
+            const SizedBox(height: 16),
+
+            // QR Generator
+            _buildActionCard(
+              context,
+              icon: Icons.qr_code_2,
+              title: 'QR Generator',
+              subtitle: 'Create QR for attendance sessions',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const QrGeneratorScreen(),
+                  ),
+                );
+              },
+            ),
+
             const SizedBox(height: 16),
             
             // Future features placeholder
