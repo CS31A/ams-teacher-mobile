@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import 'attendance_screen.dart';
 import 'reports_screen.dart';
+import 'messages_screen.dart';
 
 class RootScaffold extends StatefulWidget {
   const RootScaffold({super.key});
@@ -16,6 +17,7 @@ class _RootScaffoldState extends State<RootScaffold> {
   final List<Widget> _pages = const [
     HomeScreen(),
     AttendanceScreen(),
+    MessagesScreen(),
     ReportsScreen(),
   ];
 
@@ -40,6 +42,11 @@ class _RootScaffoldState extends State<RootScaffold> {
             icon: Icon(Icons.assignment_outlined),
             selectedIcon: Icon(Icons.assignment),
             label: 'Attendance',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.message_outlined),
+            selectedIcon: Icon(Icons.message),
+            label: 'Messages',
           ),
           NavigationDestination(
             icon: Icon(Icons.analytics_outlined),

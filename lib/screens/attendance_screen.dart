@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/attendance.dart';
 import '../services/attendance_service.dart';
+import '../services/message_service.dart';
+import 'message_compose_screen.dart';
 
 class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({super.key});
@@ -12,6 +14,8 @@ class AttendanceScreen extends StatefulWidget {
 class _AttendanceScreenState extends State<AttendanceScreen> {
   final List<AttendanceRecord> _records = [];
   bool _isLoading = false;
+  final String _teacherId = 'TCH001'; // This should come from user authentication
+  final String _teacherName = 'Ms. Smith'; // This should come from user profile
 
   Future<void> _importCSV() async {
     setState(() {
@@ -100,6 +104,39 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     }
   }
 
+  List<AttendanceRecord> _getAbsentStudents() {
+    return _records.where((record) => record.status.toLowerCase() == 'absent').toList();
+  }
+
+  Future<void> _sendMessageToAbsentStudents() async {
+    final absentStudents = _getAbsentStudents();
+    if (absentStudents.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No absent students found.')),
+      );
+      return;
+    }
+
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => MessageComposeScreen(
+          absentStudents: absentStudents,
+          teacherId: _teacherId,
+          teacherName: _teacherName,
+        ),
+      ),
+    );
+
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Messages sent to ${absentStudents.length} absent students'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -110,41 +147,62 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Row(
+            child: Column(
               children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isLoading ? null : _importCSV,
-                    icon: const Icon(Icons.file_upload_outlined),
-                    label: const Text('Import CSV'),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _isLoading ? null : _importCSV,
+                        icon: const Icon(Icons.file_upload_outlined),
+                        label: const Text('Import CSV'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _isLoading ? null : _exportCSV,
+                        icon: const Icon(Icons.file_download_outlined),
+                        label: const Text('Export CSV'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _isLoading
+                            ? null
+                            : () {
+                                setState(() {
+                                  _records
+                                    ..clear()
+                                    ..addAll(AttendanceService.sampleRecords());
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Loaded sample students.')),
+                                );
+                              },
+                        icon: const Icon(Icons.auto_awesome),
+                        label: const Text('Load Sample'),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isLoading ? null : _exportCSV,
-                    icon: const Icon(Icons.file_download_outlined),
-                    label: const Text('Export CSV'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isLoading
-                        ? null
-                        : () {
-                            setState(() {
-                              _records
-                                ..clear()
-                                ..addAll(AttendanceService.sampleRecords());
-                            });
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Loaded sample students.')),
-                            );
-                          },
-                    icon: const Icon(Icons.auto_awesome),
-                    label: const Text('Load Sample'),
-                  ),
+                const SizedBox(height: 12),
+                // Message button row
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _isLoading ? null : _sendMessageToAbsentStudents,
+                        icon: const Icon(Icons.message_outlined),
+                        label: Text('Message Absent Students (${_getAbsentStudents().length})'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange[700],
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

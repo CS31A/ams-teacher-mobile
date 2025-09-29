@@ -193,6 +193,22 @@ class AttendanceService {
         status: 'Absent',
       ),
       AttendanceRecord(
+        studentId: 'STU004',
+        studentName: 'Alice Brown',
+        date: today,
+        timeIn: '',
+        timeOut: '',
+        status: 'Absent',
+      ),
+      AttendanceRecord(
+        studentId: 'STU005',
+        studentName: 'Charlie Wilson',
+        date: today,
+        timeIn: '08:35',
+        timeOut: '16:35',
+        status: 'Present',
+      ),
+      AttendanceRecord(
         studentId: 'STU001',
         studentName: 'John Doe',
         date: yesterday,
