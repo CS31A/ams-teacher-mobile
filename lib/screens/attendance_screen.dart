@@ -12,10 +12,32 @@ class AttendanceScreen extends StatefulWidget {
 }
 
 class _AttendanceScreenState extends State<AttendanceScreen> {
-  final List<AttendanceRecord> _records = [];
+  List<AttendanceRecord> _records = [];
   bool _isLoading = false;
   final String _teacherId = 'TCH001'; // This should come from user authentication
   final String _teacherName = 'Ms. Smith'; // This should come from user profile
+
+  @override
+  void initState() {
+    super.initState();
+    // Automatically load attendance data when screen loads
+    _loadAttendanceData();
+  }
+
+  Future<void> _loadAttendanceData() async {
+    setState(() {
+      _isLoading = true;
+    });
+    
+    // Simulate loading time for better UX
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    // Load sample data (in real app, this would come from QR scanning)
+    setState(() {
+      _records = AttendanceService.sampleRecords();
+      _isLoading = false;
+    });
+  }
 
   Future<void> _importCSV() async {
     setState(() {
@@ -140,66 +162,82 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('Attendance'),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        title: const Text(
+          'Attendance',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
+          // Action Buttons Section
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.all(20.0),
             child: Column(
               children: [
+                // Main refresh button
+                _RefreshButton(
+                  onPressed: _isLoading ? null : _loadAttendanceData,
+                  isLoading: _isLoading,
+                ),
+                const SizedBox(height: 16),
+                // Message button
+                _MessageButton(
+                  onPressed: _isLoading ? null : _sendMessageToAbsentStudents,
+                  absentCount: _getAbsentStudents().length,
+                ),
+                const SizedBox(height: 16),
+                // Optional import/export buttons
                 Row(
                   children: [
                     Expanded(
-                      child: ElevatedButton.icon(
+                      child: _SecondaryButton(
                         onPressed: _isLoading ? null : _importCSV,
-                        icon: const Icon(Icons.file_upload_outlined),
-                        label: const Text('Import CSV'),
+                        icon: Icons.file_upload_outlined,
+                        label: 'Import CSV',
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: ElevatedButton.icon(
+                      child: _SecondaryButton(
                         onPressed: _isLoading ? null : _exportCSV,
-                        icon: const Icon(Icons.file_download_outlined),
-                        label: const Text('Export CSV'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _isLoading
-                            ? null
-                            : () {
-                                setState(() {
-                                  _records
-                                    ..clear()
-                                    ..addAll(AttendanceService.sampleRecords());
-                                });
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Loaded sample students.')),
-                                );
-                              },
-                        icon: const Icon(Icons.auto_awesome),
-                        label: const Text('Load Sample'),
+                        icon: Icons.file_download_outlined,
+                        label: 'Export CSV',
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                // Message button row
+                // Additional options
                 Row(
                   children: [
                     Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _isLoading ? null : _sendMessageToAbsentStudents,
-                        icon: const Icon(Icons.message_outlined),
-                        label: Text('Message Absent Students (${_getAbsentStudents().length})'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange[700],
-                          foregroundColor: Colors.white,
-                        ),
+                      child: _SecondaryButton(
+                        onPressed: _isLoading ? null : _downloadTemplate,
+                        icon: Icons.description_outlined,
+                        label: 'Download Template',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _SecondaryButton(
+                        onPressed: _isLoading
+                            ? null
+                            : () {
+                                setState(() {
+                                  _records.clear();
+                                });
+                              },
+                        icon: Icons.clear_all,
+                        label: 'Clear List',
                       ),
                     ),
                   ],
@@ -207,38 +245,25 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _isLoading ? null : _downloadTemplate,
-                    icon: const Icon(Icons.description_outlined),
-                    label: const Text('Download Template'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _isLoading
-                        ? null
-                        : () {
-                            setState(() {
-                              _records.clear();
-                            });
-                          },
-                    icon: const Icon(Icons.clear_all),
-                    label: const Text('Clear List'),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          
           const SizedBox(height: 8),
+          
+          // Content Area
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text(
+                          'Loading attendance records...',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  )
                 : _records.isEmpty
                     ? const _EmptyState()
                     : _GroupedByStudentList(records: _records),
@@ -295,7 +320,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Import a CSV file or download a template to get started.',
+              'Students will appear here after scanning the QR code.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.grey[600],
@@ -333,67 +358,146 @@ class _GroupedByStudentList extends StatelessWidget {
         final studentRecords = entries[index].value
           ..sort((a, b) => a.date.compareTo(b.date));
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      CircleAvatar(child: Text(name.isNotEmpty ? name[0] : '?')),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              name,
-                              style: const TextStyle(fontWeight: FontWeight.w700),
-                            ),
-                            Text(
-                              id,
-                              style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                            ),
-                          ],
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              children: [
+                // Student Header
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 24,
+                      backgroundColor: Colors.blue[100],
+                      child: Text(
+                        name.isNotEmpty ? name[0] : '?',
+                        style: TextStyle(
+                          color: Colors.blue[700],
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
                         ),
                       ),
-                      const Icon(Icons.check_circle, color: Color(0xFF1565C0))
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  const Divider(height: 1),
-                  const SizedBox(height: 8),
-                  ...studentRecords.map((r) => Container(
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1F6FE),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          leading: const Icon(Icons.calendar_today, size: 18, color: Color(0xFF1565C0)),
-                          title: Text(_formatDate(r.date)),
-                          subtitle: Text('Arrival ${r.timeIn.isEmpty ? '-' : r.timeIn}   •   Departure ${r.timeOut.isEmpty ? '-' : r.timeOut}'),
-                          trailing: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 18,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            id,
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.green[50],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.check_circle,
+                        color: Colors.green[600],
+                        size: 20,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Divider(height: 1),
+                const SizedBox(height: 16),
+                // Attendance Records
+                ...studentRecords.map((r) => Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey[200]!),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: _statusColor(r.status, context).withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(999),
+                              color: Colors.blue[50],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.calendar_today,
+                              size: 18,
+                              color: Colors.blue[600],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _formatDate(r.date),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Arrival ${r.timeIn.isEmpty ? '-' : r.timeIn} • Departure ${r.timeOut.isEmpty ? '-' : r.timeOut}',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: _statusColor(r.status, context).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: _statusColor(r.status, context).withOpacity(0.3),
+                              ),
                             ),
                             child: Text(
                               r.status,
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 color: _statusColor(r.status, context),
+                                fontSize: 12,
                               ),
                             ),
                           ),
-                        ),
-                      )),
-                ],
-              ),
+                        ],
+                      ),
+                    )),
+              ],
             ),
           ),
         );
@@ -421,4 +525,143 @@ class _GroupedByStudentList extends StatelessWidget {
   }
 }
 
+// Custom Refresh Button Widget
+class _RefreshButton extends StatelessWidget {
+  final VoidCallback? onPressed;
+  final bool isLoading;
 
+  const _RefreshButton({
+    required this.onPressed,
+    required this.isLoading,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: isLoading 
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            )
+          : const Icon(Icons.refresh, size: 20),
+        label: Text(
+          isLoading ? 'Loading Attendance...' : 'Refresh Attendance',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.blue[600],
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
+        ),
+      ),
+    );
+  }
+}
+
+// Custom Message Button Widget
+class _MessageButton extends StatelessWidget {
+  final VoidCallback? onPressed;
+  final int absentCount;
+
+  const _MessageButton({
+    required this.onPressed,
+    required this.absentCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.orange.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: const Icon(Icons.message_outlined, size: 20),
+        label: Text(
+          'Message Absent Students ($absentCount)',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.orange[600],
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
+        ),
+      ),
+    );
+  }
+}
+
+// Custom Secondary Button Widget
+class _SecondaryButton extends StatelessWidget {
+  final VoidCallback? onPressed;
+  final IconData icon;
+  final String label;
+
+  const _SecondaryButton({
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 18),
+      label: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: Colors.blue[600],
+        side: BorderSide(color: Colors.blue[300]!),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+  }
+}
