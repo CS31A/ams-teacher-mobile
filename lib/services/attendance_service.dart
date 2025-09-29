@@ -161,5 +161,54 @@ class AttendanceService {
         'STU002,Jane Smith,2024-01-15,08:45,16:45,Late\n' +
         'STU003,Bob Johnson,2024-01-15,08:25,16:25,Present';
   }
+
+  // Return hardcoded sample attendance records
+  static List<AttendanceRecord> sampleRecords() {
+    final DateTime today = DateTime.now();
+    final DateTime yesterday = today.subtract(const Duration(days: 1));
+
+    return [
+      AttendanceRecord(
+        studentId: 'STU001',
+        studentName: 'John Doe',
+        date: today,
+        timeIn: '08:30',
+        timeOut: '16:30',
+        status: 'Present',
+      ),
+      AttendanceRecord(
+        studentId: 'STU002',
+        studentName: 'Jane Smith',
+        date: today,
+        timeIn: '08:45',
+        timeOut: '16:45',
+        status: 'Late',
+      ),
+      AttendanceRecord(
+        studentId: 'STU003',
+        studentName: 'Bob Johnson',
+        date: today,
+        timeIn: '',
+        timeOut: '',
+        status: 'Absent',
+      ),
+      AttendanceRecord(
+        studentId: 'STU001',
+        studentName: 'John Doe',
+        date: yesterday,
+        timeIn: '08:31',
+        timeOut: '16:32',
+        status: 'Present',
+      ),
+      AttendanceRecord(
+        studentId: 'STU002',
+        studentName: 'Jane Smith',
+        date: yesterday,
+        timeIn: '08:50',
+        timeOut: '16:40',
+        status: 'Late',
+      ),
+    ];
+  }
 }
 

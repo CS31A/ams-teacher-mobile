@@ -9,9 +9,6 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Teacher Dashboard'),
-        backgroundColor: Colors.blue[600],
-        foregroundColor: Colors.white,
-        elevation: 0,
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -22,16 +19,16 @@ class HomeScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.blue[50],
+                color: const Color(0xFFE3F2FD),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.blue[200]!),
+                border: Border.all(color: const Color(0xFFBBDEFB)),
               ),
               child: Column(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.school,
                     size: 60,
-                    color: Colors.blue[600],
+                    color: Colors.white,
                   ),
                   const SizedBox(height: 16),
                   const Text(

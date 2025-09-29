@@ -104,7 +104,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Attendance Management'),
+        title: const Text('Attendance'),
       ),
       body: Column(
         children: [
@@ -125,6 +125,25 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     onPressed: _isLoading ? null : _exportCSV,
                     icon: const Icon(Icons.file_download_outlined),
                     label: const Text('Export CSV'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            setState(() {
+                              _records
+                                ..clear()
+                                ..addAll(AttendanceService.sampleRecords());
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Loaded sample students.')),
+                            );
+                          },
+                    icon: const Icon(Icons.auto_awesome),
+                    label: const Text('Load Sample'),
                   ),
                 ),
               ],
@@ -164,31 +183,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 ? const Center(child: CircularProgressIndicator())
                 : _records.isEmpty
                     ? const _EmptyState()
-                    : ListView.separated(
-                        itemCount: _records.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
-                        itemBuilder: (context, index) {
-                          final rec = _records[index];
-                          return ListTile(
-                            leading: CircleAvatar(
-                              child: Text(rec.studentName.isNotEmpty
-                                  ? rec.studentName[0]
-                                  : '?'),
-                            ),
-                            title: Text(rec.studentName),
-                            subtitle: Text(
-                              '${rec.studentId} • ${_formatDate(rec.date)} • In: ${rec.timeIn.isEmpty ? '-' : rec.timeIn} • Out: ${rec.timeOut.isEmpty ? '-' : rec.timeOut}',
-                            ),
-                            trailing: Text(
-                              rec.status,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: _statusColor(rec.status, context),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+                    : _GroupedByStudentList(records: _records),
           ),
         ],
       ),
@@ -252,6 +247,119 @@ class _EmptyState extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _GroupedByStudentList extends StatelessWidget {
+  final List<AttendanceRecord> records;
+
+  const _GroupedByStudentList({required this.records});
+
+  @override
+  Widget build(BuildContext context) {
+    final Map<String, List<AttendanceRecord>> byStudent = {};
+    for (final r in records) {
+      byStudent.putIfAbsent('${r.studentName}__${r.studentId}', () => []).add(r);
+    }
+
+    final entries = byStudent.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+
+    return ListView.builder(
+      itemCount: entries.length,
+      itemBuilder: (context, index) {
+        final key = entries[index].key;
+        final parts = key.split('__');
+        final name = parts.first;
+        final id = parts.last;
+        final studentRecords = entries[index].value
+          ..sort((a, b) => a.date.compareTo(b.date));
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(child: Text(name.isNotEmpty ? name[0] : '?')),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              name,
+                              style: const TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                            Text(
+                              id,
+                              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.check_circle, color: Color(0xFF1565C0))
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Divider(height: 1),
+                  const SizedBox(height: 8),
+                  ...studentRecords.map((r) => Container(
+                        margin: const EdgeInsets.symmetric(vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F6FE),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          leading: const Icon(Icons.calendar_today, size: 18, color: Color(0xFF1565C0)),
+                          title: Text(_formatDate(r.date)),
+                          subtitle: Text('Arrival ${r.timeIn.isEmpty ? '-' : r.timeIn}   •   Departure ${r.timeOut.isEmpty ? '-' : r.timeOut}'),
+                          trailing: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: _statusColor(r.status, context).withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              r.status,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: _statusColor(r.status, context),
+                              ),
+                            ),
+                          ),
+                        ),
+                      )),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatDate(DateTime d) {
+    final mm = d.month.toString().padLeft(2, '0');
+    final dd = d.day.toString().padLeft(2, '0');
+    return '${d.year}-$mm-$dd';
+  }
+
+  Color _statusColor(String status, BuildContext context) {
+    switch (status.toLowerCase()) {
+      case 'present':
+        return Colors.green[700]!;
+      case 'late':
+        return Colors.orange[700]!;
+      case 'absent':
+        return Colors.red[700]!;
+      default:
+        return Theme.of(context).colorScheme.primary;
+    }
   }
 }
 
