@@ -9,7 +9,18 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Teacher Dashboard'),
+        centerTitle: true,
+        title: SizedBox(
+          height: 32,
+          child: Image.asset(
+            'lib/assets/aclc logo.png',
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              // Fallback to existing Flutter icon if custom logo isn't added yet
+              return Image.asset('web/icons/Icon-512.png', fit: BoxFit.contain);
+            },
+          ),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -17,40 +28,25 @@ class HomeScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Welcome Section
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE3F2FD),
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFBBDEFB)),
               ),
-              child: Column(
-                children: [
-                  const Icon(
-                    Icons.school,
-                    size: 60,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Welcome to Teacher Portal!',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Center(
+                  child: SizedBox(
+                    height: 80,
+                    child: Image.asset(
+                      'lib/assets/aclc logo.png',
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Image.asset('web/icons/Icon-512.png', fit: BoxFit.contain);
+                      },
                     ),
-                    textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'You have successfully logged in.',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[600],
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+                ),
               ),
             ),
             
@@ -67,72 +63,67 @@ class HomeScreen extends StatelessWidget {
             ),
             
             const SizedBox(height: 16),
-            
-            // Attendance Management Card
-            _buildActionCard(
-              context,
-              icon: Icons.assignment,
-              title: 'Attendance Management',
-              subtitle: 'Import and export student attendance records',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const AttendanceScreen(),
-                  ),
-                );
-              },
-            ),
-            
-            const SizedBox(height: 16),
 
-            // QR Generator
-            _buildActionCard(
-              context,
-              icon: Icons.qr_code_2,
-              title: 'QR Generator',
-              subtitle: 'Create QR for attendance sessions',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const QrGeneratorScreen(),
-                  ),
-                );
-              },
-            ),
-
-            const SizedBox(height: 16),
-            
-            // Future features placeholder
-            _buildActionCard(
-              context,
-              icon: Icons.groups,
-              title: 'Student Management',
-              subtitle: 'Manage student information and classes',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Student Management coming soon!'),
-                    backgroundColor: Colors.blue,
-                  ),
-                );
-              },
-            ),
-            
-            const SizedBox(height: 16),
-            
-            _buildActionCard(
-              context,
-              icon: Icons.analytics,
-              title: 'Reports & Analytics',
-              subtitle: 'View attendance reports and statistics',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Reports & Analytics coming soon!'),
-                    backgroundColor: Colors.blue,
-                  ),
-                );
-              },
+            // Square Quick Action Cards Grid
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+              childAspectRatio: 1,
+              children: [
+                _buildSquareActionCard(
+                  context,
+                  icon: Icons.assignment,
+                  title: 'Attendance',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const AttendanceScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _buildSquareActionCard(
+                  context,
+                  icon: Icons.qr_code_2,
+                  title: 'QR Generator',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const QrGeneratorScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _buildSquareActionCard(
+                  context,
+                  icon: Icons.groups,
+                  title: 'Students',
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Student Management coming soon!'),
+                        backgroundColor: Colors.blue,
+                      ),
+                    );
+                  },
+                ),
+                _buildSquareActionCard(
+                  context,
+                  icon: Icons.analytics,
+                  title: 'Reports',
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Reports & Analytics coming soon!'),
+                        backgroundColor: Colors.blue,
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
           ],
         ),
@@ -140,66 +131,48 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActionCard(
+  Widget _buildSquareActionCard(
     BuildContext context, {
     required IconData icon,
     required String title,
-    required String subtitle,
     required VoidCallback onTap,
   }) {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
+        borderRadius: BorderRadius.circular(16),
+        child: Padding
+        (
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 60,
-                height: 60,
+                width: 64,
+                height: 64,
                 decoration: BoxDecoration(
                   color: Colors.blue[100],
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(
                   icon,
-                  size: 30,
+                  size: 36,
                   color: Colors.blue[600],
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
+              const SizedBox(height: 12),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
                 ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 16,
-                color: Colors.grey[400],
               ),
             ],
           ),
