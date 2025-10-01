@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../models/email_message.dart';
+import 'email_modal.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -19,14 +22,32 @@ class _NotificationScreenState extends State<NotificationScreen> {
     ),
     NotificationItem(
       id: '2',
+      title: 'New Email Message',
+      message: 'Important: Parent meeting scheduled for tomorrow',
+      time: DateTime.now().subtract(const Duration(minutes: 15)),
+      type: NotificationType.email,
+      isRead: false,
+      emailData: EmailMessage(
+        id: 'email_1',
+        from: 'principal@school.edu',
+        fromName: 'Principal Johnson',
+        subject: 'Important: Parent meeting scheduled for tomorrow',
+        body: 'Dear Teachers,\n\nI hope this email finds you well. I wanted to remind you about the important parent meeting scheduled for tomorrow at 2:00 PM in the main conference room.\n\nPlease prepare your student progress reports and be ready to discuss any concerns or achievements with the parents.\n\nIf you have any questions, please don\'t hesitate to contact me.\n\nBest regards,\nPrincipal Johnson',
+        receivedAt: DateTime.now().subtract(const Duration(minutes: 15)),
+        priority: 'High',
+        attachments: ['meeting_agenda.pdf', 'student_progress_template.docx'],
+      ),
+    ),
+    NotificationItem(
+      id: '3',
       title: 'Student Arrival - 9:00 AM',
       message: 'Jane Smith has arrived at school',
-      time: DateTime.now().subtract(const Duration(minutes: 15)),
+      time: DateTime.now().subtract(const Duration(minutes: 20)),
       type: NotificationType.arrival,
       isRead: false,
     ),
     NotificationItem(
-      id: '3',
+      id: '4',
       title: 'Student Arrival - 9:00 AM',
       message: 'Bob Johnson has arrived at school',
       time: DateTime.now().subtract(const Duration(minutes: 30)),
@@ -34,26 +55,43 @@ class _NotificationScreenState extends State<NotificationScreen> {
       isRead: false,
     ),
     NotificationItem(
-      id: '4',
+      id: '5',
+      title: 'New Email Message',
+      message: 'Weekly staff newsletter - Updates and announcements',
+      time: DateTime.now().subtract(const Duration(hours: 1)),
+      type: NotificationType.email,
+      isRead: true,
+      emailData: EmailMessage(
+        id: 'email_2',
+        from: 'admin@school.edu',
+        fromName: 'School Administration',
+        subject: 'Weekly staff newsletter - Updates and announcements',
+        body: 'Dear Staff,\n\nHere are this week\'s updates and announcements:\n\n1. New parking regulations will be implemented next week\n2. The library will be closed for maintenance on Friday\n3. Please submit your lesson plans by end of week\n4. Upcoming professional development session on Monday\n\nThank you for your attention.\n\nSchool Administration',
+        receivedAt: DateTime.now().subtract(const Duration(hours: 1)),
+        priority: 'Normal',
+      ),
+    ),
+    NotificationItem(
+      id: '6',
       title: 'Late Arrival - 9:15 AM',
       message: 'Alice Brown arrived 15 minutes late',
-      time: DateTime.now().subtract(const Duration(hours: 1)),
+      time: DateTime.now().subtract(const Duration(hours: 2)),
       type: NotificationType.late,
       isRead: true,
     ),
     NotificationItem(
-      id: '5',
+      id: '7',
       title: 'Student Arrival - 9:00 AM',
       message: 'Charlie Wilson has arrived at school',
-      time: DateTime.now().subtract(const Duration(hours: 2)),
+      time: DateTime.now().subtract(const Duration(hours: 3)),
       type: NotificationType.arrival,
       isRead: true,
     ),
     NotificationItem(
-      id: '6',
+      id: '8',
       title: 'Absent Student',
       message: 'David Lee is absent today',
-      time: DateTime.now().subtract(const Duration(hours: 3)),
+      time: DateTime.now().subtract(const Duration(hours: 4)),
       type: NotificationType.absent,
       isRead: true,
     ),
@@ -110,114 +148,45 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
-  Widget _buildSummaryCard() {
-    int unreadCount = _notifications.where((n) => !n.isRead).length;
-    int arrivalCount = _notifications.where((n) => n.type == NotificationType.arrival).length;
-    int lateCount = _notifications.where((n) => n.type == NotificationType.late).length;
-    int absentCount = _notifications.where((n) => n.type == NotificationType.absent).length;
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.notifications_active,
-                  color: Colors.blue[600],
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Today\'s Summary',
-                style: TextStyle(
-                  color: Colors.grey[800],
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-              if (unreadCount > 0)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.red[500],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '$unreadCount new',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              _buildSummaryItem('Arrivals', arrivalCount.toString(), Colors.green[600]!),
-              const SizedBox(width: 16),
-              _buildSummaryItem('Late', lateCount.toString(), Colors.orange[600]!),
-              const SizedBox(width: 16),
-              _buildSummaryItem('Absent', absentCount.toString(), Colors.red[600]!),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryItem(String label, String count, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withOpacity(0.3)),
-        ),
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              count,
-              style: TextStyle(
-                color: color,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.notifications_none,
+                size: 40,
+                color: Colors.grey[400],
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 24),
             Text(
-              label,
+              'No notifications',
               style: TextStyle(
-                color: color,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+                fontSize: 20,
+                fontWeight: FontWeight.w400,
+                color: Colors.grey[600],
               ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'You\'re all caught up!',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[500],
+                fontWeight: FontWeight.w400,
+              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -225,118 +194,52 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.notifications_none,
-            size: 100,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No notifications',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey[600],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'You\'re all caught up!',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[500],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildNotificationsList() {
-    return Column(
-      children: [
-        // Header
-        Container(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          child: Row(
-            children: [
-              Text(
-                'Recent Notifications',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '${_notifications.length} total',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[500],
-                ),
-              ),
-            ],
-          ),
-        ),
-        
-        // Notifications List
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.only(bottom: 16),
-            itemCount: _notifications.length,
-            itemBuilder: (context, index) {
-              final notification = _notifications[index];
-              return _buildNotificationCard(notification);
-            },
-          ),
-        ),
-      ],
+    return ListView.builder(
+      padding: const EdgeInsets.only(top: 8, bottom: 16),
+      itemCount: _notifications.length,
+      itemBuilder: (context, index) {
+        final notification = _notifications[index];
+        return _buildAndroidNotificationCard(notification);
+      },
     );
   }
 
-  Widget _buildNotificationCard(NotificationItem notification) {
+  Widget _buildAndroidNotificationCard(NotificationItem notification) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 2,
+            offset: const Offset(0, 1),
           ),
         ],
-        border: notification.isRead 
-            ? Border.all(color: Colors.grey[200]!)
-            : Border.all(color: Colors.blue[200]!, width: 1.5),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => _markAsRead(notification.id),
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
+          onTap: () => _handleNotificationTap(notification),
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
             padding: const EdgeInsets.all(16),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // App Icon
+                // App Icon (Android style)
                 Container(
-                  width: 44,
-                  height: 44,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
-                    color: _getNotificationColor(notification.type).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
+                    color: _getNotificationColor(notification.type),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     _getNotificationIcon(notification.type),
-                    color: _getNotificationColor(notification.type),
+                    color: Colors.white,
                     size: 20,
                   ),
                 ),
@@ -354,18 +257,20 @@ class _NotificationScreenState extends State<NotificationScreen> {
                             child: Text(
                               notification.title,
                               style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: notification.isRead ? FontWeight.w500 : FontWeight.w600,
-                                color: notification.isRead ? Colors.grey[700] : Colors.black87,
+                                fontSize: 16,
+                                fontWeight: notification.isRead ? FontWeight.w400 : FontWeight.w500,
+                                color: notification.isRead ? Colors.grey[600] : Colors.black87,
+                                height: 1.2,
                               ),
                             ),
                           ),
+                          const SizedBox(width: 8),
                           Text(
                             _formatTime(notification.time),
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey[500],
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
                         ],
@@ -377,50 +282,45 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         notification.message,
                         style: TextStyle(
                           fontSize: 14,
-                          color: notification.isRead ? Colors.grey[600] : Colors.grey[800],
+                          color: notification.isRead ? Colors.grey[500] : Colors.grey[700],
                           height: 1.3,
                         ),
-                        maxLines: 2,
+                        maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                       ),
                       
                       // Unread indicator
                       if (!notification.isRead) ...[
                         const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                color: Colors.blue[600],
-                                shape: BoxShape.circle,
-                              ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1976D2).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'NEW',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: const Color(0xFF1976D2),
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
                             ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'New',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.blue[600],
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ],
                     ],
                   ),
                 ),
                 
-                // Swipe indicator
+                // Android-style action button
                 if (!notification.isRead)
                   Container(
-                    width: 4,
-                    height: 4,
-                    decoration: BoxDecoration(
+                    margin: const EdgeInsets.only(left: 8),
+                    child: Icon(
+                      Icons.more_vert,
                       color: Colors.grey[400],
-                      shape: BoxShape.circle,
+                      size: 20,
                     ),
                   ),
               ],
@@ -439,6 +339,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
         return Colors.orange;
       case NotificationType.absent:
         return Colors.red;
+      case NotificationType.email:
+        return Colors.blue;
     }
   }
 
@@ -450,6 +352,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
         return Icons.schedule;
       case NotificationType.absent:
         return Icons.person_off;
+      case NotificationType.email:
+        return Icons.email;
     }
   }
 
@@ -484,6 +388,19 @@ class _NotificationScreenState extends State<NotificationScreen> {
       }
     });
   }
+
+  void _handleNotificationTap(NotificationItem notification) {
+    if (notification.type == NotificationType.email && notification.emailData != null) {
+      // Show email modal
+      showDialog(
+        context: context,
+        builder: (context) => EmailModal(email: notification.emailData!),
+      );
+    }
+    
+    // Mark as read
+    _markAsRead(notification.id);
+  }
 }
 
 class NotificationItem {
@@ -493,6 +410,7 @@ class NotificationItem {
   final DateTime time;
   final NotificationType type;
   final bool isRead;
+  final EmailMessage? emailData;
 
   NotificationItem({
     required this.id,
@@ -501,6 +419,7 @@ class NotificationItem {
     required this.time,
     required this.type,
     required this.isRead,
+    this.emailData,
   });
 
   NotificationItem copyWith({
@@ -510,6 +429,7 @@ class NotificationItem {
     DateTime? time,
     NotificationType? type,
     bool? isRead,
+    EmailMessage? emailData,
   }) {
     return NotificationItem(
       id: id ?? this.id,
@@ -518,6 +438,7 @@ class NotificationItem {
       time: time ?? this.time,
       type: type ?? this.type,
       isRead: isRead ?? this.isRead,
+      emailData: emailData ?? this.emailData,
     );
   }
 }
@@ -526,4 +447,5 @@ enum NotificationType {
   arrival,
   late,
   absent,
+  email,
 }
