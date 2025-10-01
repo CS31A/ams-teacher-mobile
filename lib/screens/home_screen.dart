@@ -8,49 +8,13 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        title: SizedBox(
-          height: 32,
-          child: Image.asset(
-            'lib/assets/aclc logo.png',
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) {
-              // Fallback to existing Flutter icon if custom logo isn't added yet
-              return Image.asset('web/icons/Icon-512.png', fit: BoxFit.contain);
-            },
-          ),
-        ),
-      ),
+      appBar: null,
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Welcome Section
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Center(
-                  child: SizedBox(
-                    height: 80,
-                    child: Image.asset(
-                      'lib/assets/aclc logo.png',
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Image.asset('web/icons/Icon-512.png', fit: BoxFit.contain);
-                      },
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 32),
+            const SizedBox(height: 8),
             
             // Quick Actions
             const Text(
@@ -64,66 +28,85 @@ class HomeScreen extends StatelessWidget {
             
             const SizedBox(height: 16),
 
-            // Square Quick Action Cards Grid
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: 1,
-              children: [
-                _buildSquareActionCard(
-                  context,
-                  icon: Icons.assignment,
-                  title: 'Attendance',
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const AttendanceScreen(),
+            // Square Quick Action Cards Grid with centered logo background
+            Expanded(
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  IgnorePointer(
+                    child: Opacity(
+                      opacity: 1.0,
+                      child: Image.asset(
+                        'lib/assets/aclc logo.png',
+                        width: 280,
+                        height: 280,
+                        fit: BoxFit.contain,
                       ),
-                    );
-                  },
-                ),
-                _buildSquareActionCard(
-                  context,
-                  icon: Icons.qr_code_2,
-                  title: 'QR Generator',
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const QrGeneratorScreen(),
+                    ),
+                  ),
+                  GridView.count(
+                    crossAxisCount: 2,
+                    padding: const EdgeInsets.only(top: 8),
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 1,
+                    children: [
+                      _buildSquareActionCard(
+                        context,
+                        icon: Icons.assignment,
+                        title: 'Attendance',
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const AttendanceScreen(),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
-                _buildSquareActionCard(
-                  context,
-                  icon: Icons.groups,
-                  title: 'Students',
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Student Management coming soon!'),
-                        backgroundColor: Colors.blue,
+                      _buildSquareActionCard(
+                        context,
+                        icon: Icons.qr_code_2,
+                        title: 'QR Generator',
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const QrGeneratorScreen(),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
-                _buildSquareActionCard(
-                  context,
-                  icon: Icons.analytics,
-                  title: 'Reports',
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Reports & Analytics coming soon!'),
-                        backgroundColor: Colors.blue,
+                      _buildSquareActionCard(
+                        context,
+                        icon: Icons.groups,
+                        title: 'Students',
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Student Management coming soon!'),
+                              backgroundColor: Colors.blue,
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
-              ],
+                      _buildSquareActionCard(
+                        context,
+                        icon: Icons.analytics,
+                        title: 'Reports',
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Reports & Analytics coming soon!'),
+                              backgroundColor: Colors.blue,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
