@@ -8,6 +8,8 @@ class EmailMessage {
   final bool isRead;
   final String priority; // 'High', 'Normal', 'Low'
   final List<String> attachments;
+  final String? studentId; // Optional student ID
+  final String? studentName; // Optional student name
 
   EmailMessage({
     required this.id,
@@ -19,6 +21,8 @@ class EmailMessage {
     this.isRead = false,
     this.priority = 'Normal',
     this.attachments = const [],
+    this.studentId,
+    this.studentName,
   });
 
   EmailMessage copyWith({
@@ -31,6 +35,8 @@ class EmailMessage {
     bool? isRead,
     String? priority,
     List<String>? attachments,
+    String? studentId,
+    String? studentName,
   }) {
     return EmailMessage(
       id: id ?? this.id,
@@ -42,6 +48,8 @@ class EmailMessage {
       isRead: isRead ?? this.isRead,
       priority: priority ?? this.priority,
       attachments: attachments ?? this.attachments,
+      studentId: studentId ?? this.studentId,
+      studentName: studentName ?? this.studentName,
     );
   }
 
@@ -56,6 +64,8 @@ class EmailMessage {
       'isRead': isRead,
       'priority': priority,
       'attachments': attachments,
+      'studentId': studentId,
+      'studentName': studentName,
     };
   }
 
@@ -70,6 +80,9 @@ class EmailMessage {
       isRead: json['isRead'] ?? false,
       priority: json['priority'] ?? 'Normal',
       attachments: List<String>.from(json['attachments'] ?? []),
+      studentId: json['studentId'],
+      studentName: json['studentName'],
     );
   }
 }
+

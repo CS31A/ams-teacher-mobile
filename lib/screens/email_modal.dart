@@ -52,16 +52,16 @@ class _EmailModalState extends State<EmailModal> {
       ),
       child: Row(
         children: [
-          // Email Icon
+          // Icon (Student or Email)
           Container(
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: Colors.blue[600],
+              color: widget.email.studentName != null ? Colors.green[600] : Colors.blue[600],
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(
-              Icons.email,
+            child: Icon(
+              widget.email.studentName != null ? Icons.person : Icons.email,
               color: Colors.white,
               size: 20,
             ),
@@ -73,16 +73,18 @@ class _EmailModalState extends State<EmailModal> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Email Message',
-                  style: TextStyle(
+                Text(
+                  widget.email.studentName ?? 'Email Message',
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
                   ),
                 ),
                 Text(
-                  'From: ${widget.email.fromName}',
+                  widget.email.studentName != null 
+                    ? 'Student ID: ${widget.email.studentId ?? 'N/A'}'
+                    : 'From: ${widget.email.fromName}',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey[600],
@@ -397,3 +399,4 @@ class _EmailModalState extends State<EmailModal> {
     return '${date.day}/${date.month}/${date.year} at ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 }
+
