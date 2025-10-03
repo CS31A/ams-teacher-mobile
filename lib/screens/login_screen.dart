@@ -184,6 +184,26 @@ class _LoginScreenState extends State<LoginScreen> {
             if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
               return 'Please enter a valid email';
             }
+            // Enforce allowed email domains
+            const allowedDomains = <String>{
+              'gmail.com',
+              'outlook.com',
+              'yahoo.com',
+              'hotmail.com',
+              'aol.com',
+              'icloud.com',
+              'protonmail.com',
+              'yandex.com',
+              'mail.com',
+            };
+            final atIndex = value.lastIndexOf('@');
+            if (atIndex == -1 || atIndex == value.length - 1) {
+              return 'Please enter a valid email';
+            }
+            final domain = value.substring(atIndex + 1).toLowerCase();
+            if (!allowedDomains.contains(domain)) {
+              return 'Email domain not supported';
+            }
             return null;
           },
         ),
