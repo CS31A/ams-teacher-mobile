@@ -9,6 +9,17 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  static const Set<String> _allowedEmailDomains = {
+    'gmail.com',
+    'outlook.com',
+    'yahoo.com',
+    'hotmail.com',
+    'aol.com',
+    'icloud.com',
+    'protonmail.com',
+    'yandex.com',
+    'mail.com',
+  };
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -183,6 +194,15 @@ class _LoginScreenState extends State<LoginScreen> {
             }
             if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
               return 'Please enter a valid email';
+            }
+            final String lowerCased = value.toLowerCase().trim();
+            final int atIndex = lowerCased.lastIndexOf('@');
+            if (atIndex == -1 || atIndex == lowerCased.length - 1) {
+              return 'Please enter a valid email';
+            }
+            final String domain = lowerCased.substring(atIndex + 1);
+            if (!_allowedEmailDomains.contains(domain)) {
+              return 'This email isnt exist, pls try again';
             }
             return null;
           },
