@@ -85,25 +85,11 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildHeader() {
     return Column(
       children: [
-        Container(
-          width: 100,
-          height: 100,
-          decoration: BoxDecoration(
-            color: Colors.blue[600],
-            borderRadius: BorderRadius.circular(50),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.blue.withOpacity(0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.school,
-            size: 50,
-            color: Colors.white,
-          ),
+        Image.asset(
+          'lib/assets/aclc logo.png',
+          width: 160,
+          height: 160,
+          fit: BoxFit.contain,
         ),
         const SizedBox(height: 24),
         const Text(
@@ -112,14 +98,6 @@ class _LoginScreenState extends State<LoginScreen> {
             fontSize: 28,
             fontWeight: FontWeight.bold,
             color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Sign in to your account',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey[600],
           ),
         ),
       ],
