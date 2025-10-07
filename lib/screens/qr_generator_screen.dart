@@ -11,12 +11,14 @@ class QrGeneratorScreen extends StatefulWidget {
 class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
   // Inputs
   final List<String> _subjects = const [
-    'Mathematics',
-    'English',
-    'Science',
-    'History',
-    'Computer',
-    'Custom…',
+    'INFORMATION ASSURANCE',
+    'PAGSASALING PAMPANITIKAN',
+    'SOCIAL AND PROFESSION',
+    'COMPUTER ARCHITECTURE',
+    'SOFTWARE ENGINEERING',
+    'MOBILE PROGRAMMING',
+    'AUTOMATA THEORY AND COMPUTATION',
+    'PROGRAMMMING LANGUAGE',
   ];
 
   String? _selectedSubject;
