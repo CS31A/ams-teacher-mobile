@@ -63,16 +63,51 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
 
   List<_TimeSlot> _generateNinetyMinuteSlots() {
     final List<_TimeSlot> slots = [];
+    
+    // Add hourly slots starting at 7:00, 8:00, 9:00, 10:00, 11:00 AM
+    for (int hour = 7; hour <= 11; hour++) {
+      final DateTime start = DateTime(2000, 1, 1, hour, 0); // Start at top of hour
+      final DateTime end = start.add(const Duration(minutes: 60));
+      final String label = '${_formatHm(start.hour, start.minute)} - ${_formatHm(end.hour, end.minute)}';
+      slots.add(_TimeSlot(start: start, end: end, label: label));
+    }
+    
+    // Add 1-hour slots starting from 7:30 AM
     DateTime start = DateTime(2000, 1, 1, 7, 30); // 7:30 AM
     final DateTime lastEnd = DateTime(2000, 1, 1, 12, 0); // 12:00 PM
+    
+    // Generate 1-hour slots (7:30-8:30, 8:30-9:30, etc.)
+    while (true) {
+      final DateTime end = start.add(const Duration(minutes: 60));
+      if (end.isAfter(lastEnd)) break;
+      final String label = '${_formatHm(start.hour, start.minute)} - ${_formatHm(end.hour, end.minute)}';
+      slots.add(_TimeSlot(start: start, end: end, label: label));
+      start = end;
+    }
+    
+    // Add 90-minute slots starting from 7:30 AM
+    start = DateTime(2000, 1, 1, 7, 30); // Reset to 7:30 AM
     while (true) {
       final DateTime end = start.add(const Duration(minutes: 90));
       if (end.isAfter(lastEnd)) break;
       final String label = '${_formatHm(start.hour, start.minute)} - ${_formatHm(end.hour, end.minute)}';
       slots.add(_TimeSlot(start: start, end: end, label: label));
-      // advance to next 90-minute window starting at the end of previous
       start = end;
     }
+    
+    // Add 2-hour slots starting from 7:30 AM
+    start = DateTime(2000, 1, 1, 7, 30); // Reset to 7:30 AM
+    while (true) {
+      final DateTime end = start.add(const Duration(minutes: 120));
+      if (end.isAfter(lastEnd)) break;
+      final String label = '${_formatHm(start.hour, start.minute)} - ${_formatHm(end.hour, end.minute)}';
+      slots.add(_TimeSlot(start: start, end: end, label: label));
+      start = end;
+    }
+    
+    // Sort slots by start time
+    slots.sort((a, b) => a.start.compareTo(b.start));
+    
     return slots;
   }
 
