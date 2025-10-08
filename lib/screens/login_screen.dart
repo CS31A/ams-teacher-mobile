@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'root_scaffold.dart';
+import '../services/api_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -10,38 +11,44 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _identifierController = TextEditingController(); // username or email
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _identifierController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+      setState(() => _isLoading = true);
 
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 2));
+      final result = await ApiService.login(
+        _identifierController.text.trim(),
+        _passwordController.text.trim(),
+      );
 
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
 
-      // Navigate to root with bottom navigation
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => const RootScaffold(),
-          ),
-        );
+      if (result != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Login successful!")),
+          );
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const RootScaffold()),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Invalid username or password.")),
+          );
+        }
       }
     }
   }
@@ -57,23 +64,12 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 60),
-              
-              // Teacher Icon and Title
               _buildHeader(),
-              
               const SizedBox(height: 60),
-              
-              // Login Form
               _buildLoginForm(),
-              
               const SizedBox(height: 40),
-              
-              // Login Button
               _buildLoginButton(),
-              
               const SizedBox(height: 24),
-              
-              // Additional Options
               _buildAdditionalOptions(),
             ],
           ),
@@ -123,12 +119,8 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Email Field
-            _buildEmailField(),
-            
+            _buildIdentifierField(),
             const SizedBox(height: 24),
-            
-            // Password Field
             _buildPasswordField(),
           ],
         ),
@@ -136,12 +128,12 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildEmailField() {
+  Widget _buildIdentifierField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Email Address',
+          'Username or Email',
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
@@ -150,14 +142,10 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         const SizedBox(height: 8),
         TextFormField(
-          controller: _emailController,
-          keyboardType: TextInputType.emailAddress,
+          controller: _identifierController,
           decoration: InputDecoration(
-            hintText: 'Enter your email',
-            prefixIcon: Icon(
-              Icons.email_outlined,
-              color: Colors.grey[400],
-            ),
+            hintText: 'Enter your username or email',
+            prefixIcon: Icon(Icons.person_outline, color: Colors.grey[400]),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: Colors.grey[300]!),
@@ -172,17 +160,10 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             filled: true,
             fillColor: Colors.grey[50],
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
           ),
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return 'Please enter your email';
-            }
-            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-              return 'Please enter a valid email';
+              return 'Please enter your username or email';
             }
             return null;
           },
@@ -209,19 +190,14 @@ class _LoginScreenState extends State<LoginScreen> {
           obscureText: _obscurePassword,
           decoration: InputDecoration(
             hintText: 'Enter your password',
-            prefixIcon: Icon(
-              Icons.lock_outline,
-              color: Colors.grey[400],
-            ),
+            prefixIcon: Icon(Icons.lock_outline, color: Colors.grey[400]),
             suffixIcon: IconButton(
               icon: Icon(
                 _obscurePassword ? Icons.visibility_off : Icons.visibility,
                 color: Colors.grey[400],
               ),
               onPressed: () {
-                setState(() {
-                  _obscurePassword = !_obscurePassword;
-                });
+                setState(() => _obscurePassword = !_obscurePassword);
               },
             ),
             border: OutlineInputBorder(
@@ -238,17 +214,13 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             filled: true,
             fillColor: Colors.grey[50],
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
           ),
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'Please enter your password';
             }
-            if (value.length < 6) {
-              return 'Password must be at least 6 characters';
+            if (value.length < 8) {
+              return 'Password must be at least 8 characters';
             }
             return null;
           },
@@ -268,7 +240,6 @@ class _LoginScreenState extends State<LoginScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          elevation: 0,
         ),
         child: _isLoading
             ? const SizedBox(
@@ -296,18 +267,12 @@ class _LoginScreenState extends State<LoginScreen> {
       children: [
         Text(
           'Need help? ',
-          style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 14,
-          ),
+          style: TextStyle(color: Colors.grey[600], fontSize: 14),
         ),
         GestureDetector(
           onTap: () {
-            // Handle contact support
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Contact support functionality coming soon!'),
-              ),
+              const SnackBar(content: Text('Contact support coming soon!')),
             );
           },
           child: Text(
