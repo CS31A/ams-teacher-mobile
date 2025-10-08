@@ -1,6 +1,15 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'root_scaffold.dart';
+
+class _TimeSlot {
+  final DateTime start;
+  final DateTime end;
+  final String label;
+
+  const _TimeSlot({required this.start, required this.end, required this.label});
+}
 
 class QrGeneratorScreen extends StatefulWidget {
   const QrGeneratorScreen({super.key});
@@ -26,9 +35,10 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
   final TextEditingController _customSubjectController = TextEditingController();
 
   int? _selectedRoom; // 101..310
-  // Hour filter for schedules (e.g., 7 => show 7 AM schedules)
-  final List<int> _hours = const [7, 8, 9, 10, 11, 12];
-  int? _selectedHour;
+  // Preset 1h30m time slots dropdown (e.g., 7:30 AM - 9:00 AM, ... until 12:00 PM)
+  late final List<_TimeSlot> _slots = _generateNinetyMinuteSlots();
+  int? _selectedSlotIndex; // index into _slots
+  bool _showQrOverlay = false;
 
   @override
   void dispose() {
@@ -43,17 +53,27 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
     return r;
   }
 
-  List<String> _sampleSchedulesForHour(int hour) {
-    // Simple sample schedules for demo purposes
-    // e.g., hour 7 => ["7:30 AM - 8:30 AM", "7:30 AM - 9:00 AM", ...]
-    final String start = '${hour == 12 ? 12 : hour}:30 AM';
-    final List<String> ends = [
-      '${(hour % 12) + 1}:30 AM',
-      '${(hour % 12) + 2}:00 AM',
-      '${(hour % 12) + 2}:30 AM',
-      '${(hour % 12) + 3}:00 AM',
-    ];
-    return ends.map((e) => '$start - $e').toList();
+  String _formatHm(int hour24, int minute) {
+    final bool isPm = hour24 >= 12;
+    final int hour12 = ((hour24 % 12) == 0) ? 12 : (hour24 % 12);
+    final String mm = minute.toString().padLeft(2, '0');
+    final String period = isPm ? 'PM' : 'AM';
+    return '$hour12:$mm $period';
+  }
+
+  List<_TimeSlot> _generateNinetyMinuteSlots() {
+    final List<_TimeSlot> slots = [];
+    DateTime start = DateTime(2000, 1, 1, 7, 30); // 7:30 AM
+    final DateTime lastEnd = DateTime(2000, 1, 1, 12, 0); // 12:00 PM
+    while (true) {
+      final DateTime end = start.add(const Duration(minutes: 90));
+      if (end.isAfter(lastEnd)) break;
+      final String label = '${_formatHm(start.hour, start.minute)} - ${_formatHm(end.hour, end.minute)}';
+      slots.add(_TimeSlot(start: start, end: end, label: label));
+      // advance to next 90-minute window starting at the end of previous
+      start = end;
+    }
+    return slots;
   }
 
   String _effectiveSubject() {
@@ -68,10 +88,12 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
   String _buildQrData() {
     final String subject = _effectiveSubject();
     final String room = _selectedRoom == null ? '' : 'ROOM $_selectedRoom';
-
-    // Times removed from the generator per request
-    const String start = '';
-    const String end = '';
+    final String start = _selectedSlotIndex == null
+        ? ''
+        : _formatHm(_slots[_selectedSlotIndex!].start.hour, _slots[_selectedSlotIndex!].start.minute);
+    final String end = _selectedSlotIndex == null
+        ? ''
+        : _formatHm(_slots[_selectedSlotIndex!].end.hour, _slots[_selectedSlotIndex!].end.minute);
 
     // Encode a simple JSON-like payload so the scanner can parse fields easily
     // Example: {"type":"attendance","subject":"Math","room":"ROOM 103","start":"9:00 AM","end":"10:00 AM","ts":1690000000000}
@@ -86,50 +108,26 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
       appBar: AppBar(
         title: const Text('QR Generator'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'Generate a QR Code',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      )
-                    ],
-                  ),
-                  child: QrImageView(
-                    data: _buildQrData(),
-                    version: QrVersions.auto,
-                    size: 240,
-                    backgroundColor: Colors.white,
-                  ),
+      body: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Generate a QR Code',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Controls inside a clean card
-            // Controls inside a clean card
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
+                const SizedBox(height: 12),
+                // Controls inside a clean card
+                Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final bool narrow = constraints.maxWidth < 520;
@@ -190,75 +188,95 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
                       ),
                     ],
                     const SizedBox(height: 12),
-                    // Hour dropdown and filtered schedules
-                    DropdownButtonFormField<int>(
-                      value: _selectedHour,
-                      items: _hours
-                          .map((h) => DropdownMenuItem<int>(
-                                value: h,
-                                child: Text('$h AM'),
-                              ))
-                          .toList(),
-                      decoration: const InputDecoration(
-                        labelText: 'Filter by hour',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.access_time),
-                      ),
-                      onChanged: (v) {
-                        setState(() {
-                          _selectedHour = v;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    if (_selectedHour != null)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'Schedules starting at ${_selectedHour} AM',
-                              style: const TextStyle(fontWeight: FontWeight.w600),
-                            ),
+                        // Time slot dropdown with placeholder
+                        DropdownButtonFormField<int>(
+                          value: _selectedSlotIndex,
+                          hint: const Text('Select time slot'),
+                          items: [
+                            for (int i = 0; i < _slots.length; i++)
+                              DropdownMenuItem<int>(
+                                value: i,
+                                child: Text(_slots[i].label),
+                              ),
+                          ],
+                          decoration: const InputDecoration(
+                            labelText: 'Time slot',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.access_time),
                           ),
-                          const SizedBox(height: 8),
-                          ..._sampleSchedulesForHour(_selectedHour!)
-                              .map(
-                                (s) => Container(
-                                  margin: const EdgeInsets.symmetric(vertical: 4),
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF1F6FE),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.schedule, size: 18, color: Color(0xFF1565C0)),
-                                      const SizedBox(width: 8),
-                                      Text(s),
-                                    ],
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                        ],
+                          onChanged: (v) {
+                            setState(() {
+                              _selectedSlotIndex = v;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    FocusScope.of(context).unfocus();
+                    setState(() {
+                      _showQrOverlay = true;
+                    });
+                  },
+                  icon: const Icon(Icons.qr_code),
+                  label: const Text('Generate QR'),
+                ),
+              ],
+            ),
+          ),
+          if (_showQrOverlay)
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () => setState(() => _showQrOverlay = false),
+                child: Stack(
+                  children: [
+                    BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                      child: Container(color: Colors.black.withOpacity(0.2)),
+                    ),
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.15),
+                              blurRadius: 12,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Align(
+                              alignment: Alignment.topRight,
+                              child: IconButton(
+                                icon: const Icon(Icons.close),
+                                onPressed: () => setState(() => _showQrOverlay = false),
+                              ),
+                            ),
+                            QrImageView(
+                              data: _buildQrData(),
+                              version: QrVersions.auto,
+                              size: 260,
+                              backgroundColor: Colors.white,
+                            ),
+                          ],
+                        ),
                       ),
+                    ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: () {
-                FocusScope.of(context).unfocus();
-                setState(() {}); // rebuild QR
-              },
-              icon: const Icon(Icons.qr_code),
-              label: const Text('Generate QR'),
-            ),
-          ],
-        ),
+        ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: 0, // highlight Home by default
