@@ -25,10 +25,10 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
   String? _selectedSubject;
   final TextEditingController _customSubjectController = TextEditingController();
 
-  DateTime? _selectedDate;
-  TimeOfDay? _startTime;
-  TimeOfDay? _endTime;
   int? _selectedRoom; // 101..310
+  // Hour filter for schedules (e.g., 7 => show 7 AM schedules)
+  final List<int> _hours = const [7, 8, 9, 10, 11, 12];
+  int? _selectedHour;
 
   @override
   void dispose() {
@@ -43,17 +43,17 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
     return r;
   }
 
-  String _fmtDate(DateTime? d) {
-    if (d == null) return '';
-    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-  }
-
-  String _fmtTime(TimeOfDay? t) {
-    if (t == null) return '';
-    final int hour = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
-    final String minute = t.minute.toString().padLeft(2, '0');
-    final String period = t.period == DayPeriod.am ? 'AM' : 'PM';
-    return '$hour:$minute $period';
+  List<String> _sampleSchedulesForHour(int hour) {
+    // Simple sample schedules for demo purposes
+    // e.g., hour 7 => ["7:30 AM - 8:30 AM", "7:30 AM - 9:00 AM", ...]
+    final String start = '${hour == 12 ? 12 : hour}:30 AM';
+    final List<String> ends = [
+      '${(hour % 12) + 1}:30 AM',
+      '${(hour % 12) + 2}:00 AM',
+      '${(hour % 12) + 2}:30 AM',
+      '${(hour % 12) + 3}:00 AM',
+    ];
+    return ends.map((e) => '$start - $e').toList();
   }
 
   String _effectiveSubject() {
@@ -68,49 +68,17 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
   String _buildQrData() {
     final String subject = _effectiveSubject();
     final String room = _selectedRoom == null ? '' : 'ROOM $_selectedRoom';
-    final String start = _fmtTime(_startTime);
-    final String end = _fmtTime(_endTime);
+
+    // Times removed from the generator per request
+    const String start = '';
+    const String end = '';
 
     // Encode a simple JSON-like payload so the scanner can parse fields easily
     // Example: {"type":"attendance","subject":"Math","room":"ROOM 103","start":"9:00 AM","end":"10:00 AM","ts":1690000000000}
     return '{"type":"attendance","subject":"$subject","room":"$room","start":"$start","end":"$end","ts":${DateTime.now().millisecondsSinceEpoch}}';
   }
 
-  Future<void> _pickDate() async {
-    final DateTime now = DateTime.now();
-    final DateTime first = DateTime(now.year - 1);
-    final DateTime last = DateTime(now.year + 2);
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      firstDate: first,
-      lastDate: last,
-      initialDate: _selectedDate ?? now,
-    );
-    if (picked != null) {
-      setState(() {
-        _selectedDate = picked;
-      });
-    }
-  }
-
-  Future<void> _pickTime({required bool isStart}) async {
-    final TimeOfDay initial = isStart
-        ? (_startTime ?? TimeOfDay.now())
-        : (_endTime ?? TimeOfDay.now());
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: initial,
-    );
-    if (picked != null) {
-      setState(() {
-        if (isStart) {
-          _startTime = picked;
-        } else {
-          _endTime = picked;
-        }
-      });
-    }
-  }
+  // Date and time pickers removed as requested
 
   @override
   Widget build(BuildContext context) {
@@ -222,67 +190,60 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
                       ),
                     ],
                     const SizedBox(height: 12),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final bool narrow = constraints.maxWidth < 720;
-                        Widget dateBtn = SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: _pickDate,
-                            style: ButtonStyle(
-                              alignment: Alignment.centerLeft,
-                              minimumSize: MaterialStateProperty.all(const Size.fromHeight(48)),
-                            ),
-                            icon: const Icon(Icons.event),
-                            label: Text(_selectedDate == null ? 'Pick date' : _fmtDate(_selectedDate)),
-                          ),
-                        );
-                        Widget startBtn = SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: () => _pickTime(isStart: true),
-                            style: ButtonStyle(
-                              alignment: Alignment.centerLeft,
-                              minimumSize: MaterialStateProperty.all(const Size.fromHeight(48)),
-                            ),
-                            icon: const Icon(Icons.schedule),
-                            label: Text(_startTime == null ? 'Start time' : _fmtTime(_startTime)),
-                          ),
-                        );
-                        Widget endBtn = SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: () => _pickTime(isStart: false),
-                            style: ButtonStyle(
-                              alignment: Alignment.centerLeft,
-                              minimumSize: MaterialStateProperty.all(const Size.fromHeight(48)),
-                            ),
-                            icon: const Icon(Icons.schedule_outlined),
-                            label: Text(_endTime == null ? 'End time' : _fmtTime(_endTime)),
-                          ),
-                        );
-                        if (narrow) {
-                          return Column(
-                            children: [
-                              dateBtn,
-                              const SizedBox(height: 12),
-                              startBtn,
-                              const SizedBox(height: 12),
-                              endBtn,
-                            ],
-                          );
-                        }
-                        return Row(
-                          children: [
-                            Expanded(child: dateBtn),
-                            const SizedBox(width: 12),
-                            Expanded(child: startBtn),
-                            const SizedBox(width: 12),
-                            Expanded(child: endBtn),
-                          ],
-                        );
+                    // Hour dropdown and filtered schedules
+                    DropdownButtonFormField<int>(
+                      value: _selectedHour,
+                      items: _hours
+                          .map((h) => DropdownMenuItem<int>(
+                                value: h,
+                                child: Text('$h AM'),
+                              ))
+                          .toList(),
+                      decoration: const InputDecoration(
+                        labelText: 'Filter by hour',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.access_time),
+                      ),
+                      onChanged: (v) {
+                        setState(() {
+                          _selectedHour = v;
+                        });
                       },
                     ),
+                    const SizedBox(height: 12),
+                    if (_selectedHour != null)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Schedules starting at ${_selectedHour} AM',
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          ..._sampleSchedulesForHour(_selectedHour!)
+                              .map(
+                                (s) => Container(
+                                  margin: const EdgeInsets.symmetric(vertical: 4),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF1F6FE),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.schedule, size: 18, color: Color(0xFF1565C0)),
+                                      const SizedBox(width: 8),
+                                      Text(s),
+                                    ],
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ],
+                      ),
                   ],
                 ),
               ),
