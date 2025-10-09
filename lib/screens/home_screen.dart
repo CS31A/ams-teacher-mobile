@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'attendance_screen.dart';
 import 'notification_screen.dart';
+import 'qr_generator_screen.dart';
 import 'profile_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -118,10 +119,9 @@ class HomeScreen extends StatelessWidget {
                         icon: Icons.qr_code_2,
                         title: 'QR Generator',
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('QR Generator coming soon!'),
-                              backgroundColor: Colors.blue,
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const QRGeneratorScreen(),
                             ),
                           );
                         },
