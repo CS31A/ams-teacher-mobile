@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'attendance_screen.dart';
 import 'notification_screen.dart';
+import 'profile_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -140,13 +141,12 @@ class HomeScreen extends StatelessWidget {
                       ),
                       _buildSquareActionCard(
                         context,
-                        icon: Icons.analytics,
-                        title: 'Reports',
+                        icon: Icons.person,
+                        title: 'Profile',
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Reports & Analytics coming soon!'),
-                              backgroundColor: Colors.blue,
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const ProfileScreen(),
                             ),
                           );
                         },
