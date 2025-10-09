@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'root_scaffold.dart';
+import 'login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -44,8 +46,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _onLogout() {
-    Navigator.of(context).popUntil((route) => route.isFirst);
-    // Leave navigation handling to RootScaffold or push login if available
+    // TODO: Clear any stored auth tokens here if applicable
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
   }
 
   InputDecoration _dec(String label, IconData icon) {
@@ -69,6 +74,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
         elevation: 0.5,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const RootScaffold()),
+                (route) => false,
+              );
+            }
+          },
+          tooltip: 'Back',
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
