@@ -24,45 +24,45 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
         title: const Text('QR Generator'),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'Generate a QR Code',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            TextField(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Generate a QR Code',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                      const SizedBox(height: 12),
+                      TextField(
               controller: _textController,
               decoration: const InputDecoration(
                 labelText: 'QR content',
                 border: OutlineInputBorder(),
                 hintText: 'Enter text or attendance session ID',
-              ),
-              onChanged: (_) => setState(() {}),
+                        ),
+                        onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 24),
             Expanded(
               child: Center(
-                child: Container(
+                      child: Container(
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
+                          boxShadow: [
+                            BoxShadow(
                         color: Colors.black.withOpacity(0.05),
                         blurRadius: 8,
                         offset: const Offset(0, 4),
                       )
                     ],
                   ),
-                  child: QrImageView(
+                                    child: QrImageView(
                     data: _textController.text.trim().isEmpty ? ' ' : _textController.text.trim(),
-                    version: QrVersions.auto,
+                              version: QrVersions.auto,
                     size: 240,
-                    backgroundColor: Colors.white,
+                              backgroundColor: Colors.white,
                   ),
                 ),
               ),
