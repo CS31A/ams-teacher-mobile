@@ -72,7 +72,7 @@ class Section {
     final students = Student.getHardcodedStudents();
     
     return [
-      // Computer Science Sections
+      // Computer Science Sections (ordered per UI need)
       Section(
         id: 'SEC001',
         name: 'CS31A',
@@ -148,6 +148,33 @@ class Section {
           ),
         ],
       ),
+      // IT as 4th item in the list
+      Section(
+        id: 'SEC006',
+        name: 'IT21A',
+        grade: '2',
+        subjects: [
+          Subject(
+            id: 'SUB028',
+            name: 'Database Systems',
+            code: 'IT201',
+            enrolledStudents: students.where((s) => s.grade == '11' && s.section == 'A').toList(),
+          ),
+          Subject(
+            id: 'SUB029',
+            name: 'Web Technologies',
+            code: 'IT202',
+            enrolledStudents: students.where((s) => s.grade == '11' && s.section == 'A').toList(),
+          ),
+          Subject(
+            id: 'SUB030',
+            name: 'IT Infrastructure',
+            code: 'IT203',
+            enrolledStudents: students.where((s) => s.grade == '11' && s.section == 'A').toList(),
+          ),
+        ],
+      ),
+      // Remaining CS items
       Section(
         id: 'SEC004',
         name: 'CS21B',
@@ -195,31 +222,6 @@ class Section {
             name: 'Discrete Mathematics',
             code: 'CS103',
             enrolledStudents: students.where((s) => s.grade == '10' && s.section == 'A').toList(),
-          ),
-        ],
-      ),
-      Section(
-        id: 'SEC006',
-        name: 'CS11B',
-        grade: '1',
-        subjects: [
-          Subject(
-            id: 'SUB016',
-            name: 'Programming Fundamentals',
-            code: 'CS101',
-            enrolledStudents: students.where((s) => s.grade == '10' && s.section == 'B').toList(),
-          ),
-          Subject(
-            id: 'SUB017',
-            name: 'Computer Literacy',
-            code: 'CS104',
-            enrolledStudents: students.where((s) => s.grade == '10' && s.section == 'B').toList(),
-          ),
-          Subject(
-            id: 'SUB018',
-            name: 'Logic Design',
-            code: 'CS105',
-            enrolledStudents: students.where((s) => s.grade == '10' && s.section == 'B').toList(),
           ),
         ],
       ),
