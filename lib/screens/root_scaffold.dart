@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
-import 'attendance_screen.dart';
 import 'profile_screen.dart';
-import 'messages_screen.dart';
+import 'qr_generator_screen.dart';
+import 'students_list_screen.dart';
 
 class RootScaffold extends StatefulWidget {
   const RootScaffold({super.key, this.initialIndex = 0});
@@ -18,8 +18,8 @@ class _RootScaffoldState extends State<RootScaffold> {
 
   final List<Widget> _pages = const [
     HomeScreen(),
-    AttendanceScreen(),
-    MessagesScreen(),
+    QRGeneratorScreen(),
+    StudentsListScreen(),
     ProfileScreen(),
   ];
 
@@ -45,14 +45,14 @@ class _RootScaffoldState extends State<RootScaffold> {
             label: 'Home',
           ),
           NavigationDestination(
-            icon: Icon(Icons.assignment_outlined),
-            selectedIcon: Icon(Icons.assignment),
-            label: 'Attendance',
+            icon: Icon(Icons.qr_code_2_outlined),
+            selectedIcon: Icon(Icons.qr_code_2),
+            label: 'QR Generator',
           ),
           NavigationDestination(
-            icon: Icon(Icons.message_outlined),
-            selectedIcon: Icon(Icons.message),
-            label: 'Messages',
+            icon: Icon(Icons.groups_outlined),
+            selectedIcon: Icon(Icons.groups),
+            label: 'Sections',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
