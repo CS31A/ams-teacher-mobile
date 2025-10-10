@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import 'attendance_screen.dart';
-import 'reports_screen.dart';
+import 'profile_screen.dart';
 import 'messages_screen.dart';
 
 class RootScaffold extends StatefulWidget {
@@ -20,7 +20,7 @@ class _RootScaffoldState extends State<RootScaffold> {
     HomeScreen(),
     AttendanceScreen(),
     MessagesScreen(),
-    ReportsScreen(),
+    ProfileScreen(),
   ];
 
   @override
@@ -55,9 +55,9 @@ class _RootScaffoldState extends State<RootScaffold> {
             label: 'Messages',
           ),
           NavigationDestination(
-            icon: Icon(Icons.analytics_outlined),
-            selectedIcon: Icon(Icons.analytics),
-            label: 'Reports',
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Profile',
           ),
         ],
       ),
