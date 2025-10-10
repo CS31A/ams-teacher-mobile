@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  // Updated to the correct port!
-  static const String baseUrl = "https://localhost:8081/api";
+  // For mobile device, use your computer's IP address instead of localhost
+  // Your computer's IP address: 192.168.254.106
+  // Backend runs HTTP on port 8080, HTTPS on port 8081
+  static const String baseUrl = "http://192.168.254.106:8080/api";
 
   /// Login with username/email and password
   static Future<Map<String, dynamic>?> login(
