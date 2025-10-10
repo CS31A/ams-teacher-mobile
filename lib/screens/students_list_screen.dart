@@ -104,16 +104,7 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
           elevation: 2,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.blue[100],
-              child: Text(
-                section.grade,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue[800],
-                ),
-              ),
-            ),
+            leading: null,
             title: Text(
               section.name,
               style: const TextStyle(fontWeight: FontWeight.w600),
