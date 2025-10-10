@@ -3,6 +3,7 @@ import 'attendance_screen.dart';
 import 'notification_screen.dart';
 import 'qr_generator_screen.dart';
 import 'profile_screen.dart';
+import 'students_list_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -129,12 +130,11 @@ class HomeScreen extends StatelessWidget {
                       _buildSquareActionCard(
                         context,
                         icon: Icons.groups,
-                        title: 'Students',
+                        title: 'Sections',
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Student Management coming soon!'),
-                              backgroundColor: Colors.blue,
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const StudentsListScreen(),
                             ),
                           );
                         },
