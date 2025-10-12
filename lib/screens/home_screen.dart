@@ -393,27 +393,28 @@ class DashboardContent extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
                 Expanded(
-                  child: BarChart(
-                    BarChartData(
-                      alignment: BarChartAlignment.spaceAround,
-                      maxY: 100,
-                      barTouchData: BarTouchData(
+                  child: LineChart(
+                    LineChartData(
+                      lineTouchData: LineTouchData(
                         enabled: true,
-                        touchTooltipData: BarTouchTooltipData(
+                        touchTooltipData: LineTouchTooltipData(
                           tooltipBgColor: Colors.blue.shade700,
                           tooltipRoundedRadius: 12,
                           tooltipPadding: const EdgeInsets.all(12),
-                          getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                            return BarTooltipItem(
-                              '${rod.toY.round()}%',
-                              const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            );
+                          getTooltipItems: (List<LineBarSpot> touchedSpots) {
+                            return touchedSpots.map((spot) {
+                              return LineTooltipItem(
+                                '${spot.y.round()}%',
+                                const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              );
+                            }).toList();
                           },
                         ),
+                        touchSpotThreshold: 20,
                       ),
                       titlesData: FlTitlesData(
                         show: true,
@@ -438,10 +439,30 @@ class DashboardContent extends StatelessWidget {
                               }
                               return const SizedBox();
                             },
+                            reservedSize: 30,
                           ),
                         ),
-                        leftTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (value, meta) {
+                              if (value % 25 == 0 && value > 0) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 8.0),
+                                  child: Text(
+                                    '${value.toInt()}%',
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                );
+                              }
+                              return const SizedBox();
+                            },
+                            reservedSize: 35,
+                          ),
                         ),
                         topTitles: const AxisTitles(
                           sideTitles: SideTitles(showTitles: false),
@@ -450,14 +471,19 @@ class DashboardContent extends StatelessWidget {
                           sideTitles: SideTitles(showTitles: false),
                         ),
                       ),
-                      borderData: FlBorderData(show: false),
-                      barGroups: [
-                        _buildBarGroup(0, 88),
-                        _buildBarGroup(1, 92),
-                        _buildBarGroup(2, 95),
-                        _buildBarGroup(3, 90),
-                        _buildBarGroup(4, 85),
-                      ],
+                      borderData: FlBorderData(
+                        show: true,
+                        border: Border(
+                          bottom: BorderSide(
+                            color: Colors.grey.withOpacity(0.2),
+                            width: 1,
+                          ),
+                          left: BorderSide(
+                            color: Colors.grey.withOpacity(0.2),
+                            width: 1,
+                          ),
+                        ),
+                      ),
                       gridData: FlGridData(
                         show: true,
                         drawVerticalLine: false,
@@ -470,6 +496,47 @@ class DashboardContent extends StatelessWidget {
                           );
                         },
                       ),
+                      minX: 0,
+                      maxX: 4,
+                      minY: 0,
+                      maxY: 100,
+                      lineBarsData: [
+                        LineChartBarData(
+                          spots: const [
+                            FlSpot(0, 88),
+                            FlSpot(1, 92),
+                            FlSpot(2, 95),
+                            FlSpot(3, 90),
+                            FlSpot(4, 85),
+                          ],
+                          isCurved: true,
+                          color: Colors.blue,
+                          barWidth: 4,
+                          isStrokeCapRound: true,
+                          dotData: FlDotData(
+                            show: true,
+                            getDotPainter: (spot, percent, barData, index) {
+                              return FlDotCirclePainter(
+                                radius: 6,
+                                color: Colors.white,
+                                strokeWidth: 3,
+                                strokeColor: Colors.blue,
+                              );
+                            },
+                          ),
+                          belowBarData: BarAreaData(
+                            show: true,
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.blue.withOpacity(0.4),
+                                Colors.blue.withOpacity(0.1),
+                              ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
