@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
-import 'attendance_screen.dart';
 import 'profile_screen.dart';
-import 'messages_screen.dart';
+import 'qr_generator_screen.dart';
+import 'students_list_screen.dart';
 
 class RootScaffold extends StatefulWidget {
   const RootScaffold({super.key, this.initialIndex = 0});
@@ -16,47 +16,54 @@ class RootScaffold extends StatefulWidget {
 class _RootScaffoldState extends State<RootScaffold> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = const [
-    HomeScreen(),
-    AttendanceScreen(),
-    MessagesScreen(),
-    ProfileScreen(),
-  ];
+  late final List<Widget> _pages;
+  
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _pages = [
+      const HomeScreen(),
+      const QRGeneratorScreen(),
+      const StudentsListScreen(),
+      const ProfileScreen(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (_currentIndex != widget.initialIndex && _pages.isNotEmpty) {
-      // Initialize from initialIndex once on first build
-      _currentIndex = widget.initialIndex;
-    }
     return Scaffold(
       body: _pages[_currentIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (i) {
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          print('Navigation tapped: $index'); // Debug print
           setState(() {
-            _currentIndex = i;
+            _currentIndex = index;
           });
         },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.white,
+        selectedItemColor: Colors.blue,
+        unselectedItemColor: Colors.grey,
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+        unselectedLabelStyle: const TextStyle(fontSize: 12),
+        elevation: 8, // Add elevation for better visibility
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
             label: 'Home',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.assignment_outlined),
-            selectedIcon: Icon(Icons.assignment),
-            label: 'Attendance',
+          BottomNavigationBarItem(
+            icon: Icon(Icons.qr_code_2),
+            label: 'QR Generator',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.message_outlined),
-            selectedIcon: Icon(Icons.message),
-            label: 'Messages',
+          BottomNavigationBarItem(
+            icon: Icon(Icons.groups),
+            label: 'Sections',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
             label: 'Profile',
           ),
         ],
