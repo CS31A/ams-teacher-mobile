@@ -203,6 +203,40 @@ class DashboardContent extends StatelessWidget {
           
           const SizedBox(height: 16),
           
+          // Countdown Timer
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue.withOpacity(0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.timer, color: Colors.blue),
+                const SizedBox(width: 8),
+                const Text(
+                  'Next class in: ',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: Colors.blue,
+                  ),
+                ),
+                Text(
+                  '01:45:30',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          
           Container(
             height: 240,
             padding: const EdgeInsets.all(16),
@@ -339,49 +373,6 @@ class DashboardContent extends StatelessWidget {
           ),
           
           const SizedBox(height: 24),
-          
-          // Recent Activity
-          const Text(
-            'Recent Activity',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          _buildActivityCard(
-            context,
-            title: 'Attendance Recorded',
-            subtitle: 'CS101 - Introduction to Programming',
-            time: '2 hours ago',
-            icon: Icons.check_circle,
-            color: Colors.green,
-          ),
-          
-          const SizedBox(height: 12),
-          
-          _buildActivityCard(
-            context,
-            title: 'QR Code Generated',
-            subtitle: 'IT202 - Database Management',
-            time: '4 hours ago',
-            icon: Icons.qr_code,
-            color: Colors.blue,
-          ),
-          
-          const SizedBox(height: 12),
-          
-          _buildActivityCard(
-            context,
-            title: 'New Student Added',
-            subtitle: 'CS201 - Data Structures',
-            time: 'Yesterday',
-            icon: Icons.person_add,
-            color: Colors.purple,
-          ),
         ],
       ),
     );
