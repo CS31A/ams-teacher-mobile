@@ -220,18 +220,137 @@ class DashboardContent extends StatelessWidget {
           
           const SizedBox(height: 16),
           
+          // Enhanced Countdown Timer with Next Class Info
           Container(
-            height: 240,
+            width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              gradient: LinearGradient(
+                colors: [Colors.blue.shade700, Colors.blue.shade500],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
-                  spreadRadius: 1,
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
+                  color: Colors.blue.withOpacity(0.3),
+                  spreadRadius: 2,
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.timer, color: Colors.white, size: 28),
+                    ),
+                    const SizedBox(width: 16),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Next Class',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            fontSize: 20,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Monday, June 10, 2024',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.book, color: Colors.white, size: 18),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Mathematics 101',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Icon(Icons.location_on, color: Colors.white, size: 16),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Room 305 • 10:30 AM',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Text(
+                        '01:45:30',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Improved Chart Container
+          Container(
+            height: 280,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.2),
+                  spreadRadius: 2,
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
@@ -244,28 +363,35 @@ class DashboardContent extends StatelessWidget {
                     const Text(
                       'Attendance Rate',
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.green.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.green.withOpacity(0.3)),
                       ),
-                      child: const Text(
-                        '92% Average',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.green,
-                        ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.trending_up, color: Colors.green, size: 16),
+                          SizedBox(width: 4),
+                          Text(
+                            '92% Average',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.green,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 Expanded(
                   child: BarChart(
                     BarChartData(
@@ -274,13 +400,16 @@ class DashboardContent extends StatelessWidget {
                       barTouchData: BarTouchData(
                         enabled: true,
                         touchTooltipData: BarTouchTooltipData(
-                          tooltipBgColor: Colors.blueGrey,
+                          tooltipBgColor: Colors.blue.shade700,
+                          tooltipRoundedRadius: 12,
+                          tooltipPadding: const EdgeInsets.all(12),
                           getTooltipItem: (group, groupIndex, rod, rodIndex) {
                             return BarTooltipItem(
                               '${rod.toY.round()}%',
                               const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
+                                fontSize: 14,
                               ),
                             );
                           },
@@ -296,11 +425,11 @@ class DashboardContent extends StatelessWidget {
                               final index = value.toInt();
                               if (index >= 0 && index < titles.length) {
                                 return Padding(
-                                  padding: const EdgeInsets.only(top: 8.0),
+                                  padding: const EdgeInsets.only(top: 10.0),
                                   child: Text(
                                     titles[index],
                                     style: const TextStyle(
-                                      color: Colors.grey,
+                                      color: Colors.black87,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12,
                                     ),
@@ -329,7 +458,18 @@ class DashboardContent extends StatelessWidget {
                         _buildBarGroup(3, 90),
                         _buildBarGroup(4, 85),
                       ],
-                      gridData: const FlGridData(show: false),
+                      gridData: FlGridData(
+                        show: true,
+                        drawVerticalLine: false,
+                        horizontalInterval: 25,
+                        getDrawingHorizontalLine: (value) {
+                          return FlLine(
+                            color: Colors.grey.withOpacity(0.15),
+                            strokeWidth: 1,
+                            dashArray: [5, 5],
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),
