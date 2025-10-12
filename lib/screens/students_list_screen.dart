@@ -4,47 +4,7 @@ import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/student.dart';
-
-// Local minimal models (since models/section.dart may not exist)
-class Subject {
-  final String name;
-  final String code;
-  final List<Student> enrolledStudents;
-  Subject({required this.name, required this.code, required this.enrolledStudents});
-}
-
-class Section {
-  final String id;
-  final String name;
-  final List<Subject> subjects;
-  Section({required this.id, required this.name, required this.subjects});
-
-  static List<Section> getHardcodedSections() {
-    final students = Student.getHardcodedStudents();
-    List<Student> by(String grade, String sec) =>
-        students.where((s) => s.grade == grade && s.section == sec).toList();
-    return [
-      Section(id: 'SEC001', name: 'CS31A', subjects: [
-        Subject(name: 'Software Engineering', code: 'CS301', enrolledStudents: by('12', 'A')),
-      ]),
-      Section(id: 'SEC002', name: 'CS31B', subjects: [
-        Subject(name: 'Database Management', code: 'CS302', enrolledStudents: by('12', 'B')),
-      ]),
-      Section(id: 'SEC003', name: 'CS21A', subjects: [
-        Subject(name: 'Advanced Programming', code: 'CS201', enrolledStudents: by('11', 'A')),
-      ]),
-      Section(id: 'SEC004', name: 'IT21A', subjects: [
-        Subject(name: 'Database Systems', code: 'IT201', enrolledStudents: by('11', 'A')),
-      ]),
-      Section(id: 'SEC005', name: 'CS21B', subjects: [
-        Subject(name: 'Operating Systems', code: 'CS205', enrolledStudents: by('11', 'B')),
-      ]),
-      Section(id: 'SEC006', name: 'CS11A', subjects: [
-        Subject(name: 'Programming Fundamentals', code: 'CS101', enrolledStudents: by('10', 'A')),
-      ]),
-    ];
-  }
-}
+import '../models/section.dart';
 
 class StudentsListScreen extends StatefulWidget {
   const StudentsListScreen({super.key});
@@ -297,6 +257,7 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
                 ))
             .toList();
         subjects.add(Subject(
+          id: '',
           name: subjectName,
           code: '',
           enrolledStudents: enrolled,
@@ -306,6 +267,7 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
       final updatedSection = Section(
         id: section.id,
         name: section.name,
+        grade: section.grade,
         subjects: subjects,
       );
 
@@ -334,14 +296,14 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
     
     return ListView.separated(
       itemCount: _selectedSection!.subjects.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
-        itemBuilder: (context, index) {
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (context, index) {
         final subject = _selectedSection!.subjects[index];
-          return Card(
+        return Card(
           elevation: 2,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: ListTile(
-              leading: CircleAvatar(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ListTile(
+            leading: CircleAvatar(
               backgroundColor: Colors.green[100],
               child: Icon(
                 Icons.book,
@@ -353,11 +315,11 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
             subtitle: Text('${subject.code} • ${subject.enrolledStudents.length} students'),
-              trailing: const Icon(Icons.chevron_right),
+            trailing: const Icon(Icons.chevron_right),
             onTap: () => _navigateToStudents(subject),
-            ),
-          );
-        },
+          ),
+        );
+      },
     );
   }
 
