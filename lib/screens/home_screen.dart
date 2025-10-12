@@ -87,6 +87,11 @@ class _HomeScreenState extends State<HomeScreen> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
+        selectedFontSize: 16.0,
+        unselectedFontSize: 14.0,
+        iconSize: 32.0,
+        elevation: 8.0,
+        backgroundColor: Colors.white,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -192,6 +197,73 @@ class DashboardContent extends StatelessWidget {
           const SizedBox(height: 24),
           
           // Attendance Chart
+          // Countdown Timer
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.1),
+                  spreadRadius: 1,
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Next Class',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    Icon(
+                      Icons.timer,
+                      color: Colors.blue.withOpacity(0.7),
+                      size: 24,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildTimeUnit("01", "Hours"),
+                    const SizedBox(width: 8),
+                    const Text(":", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 8),
+                    _buildTimeUnit("45", "Minutes"),
+                    const SizedBox(width: 8),
+                    const Text(":", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 8),
+                    _buildTimeUnit("30", "Seconds"),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  "CS202 - Advanced Programming",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 24),
+          
           const Text(
             'Weekly Attendance',
             style: TextStyle(
@@ -339,49 +411,6 @@ class DashboardContent extends StatelessWidget {
           ),
           
           const SizedBox(height: 24),
-          
-          // Recent Activity
-          const Text(
-            'Recent Activity',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          _buildActivityCard(
-            context,
-            title: 'Attendance Recorded',
-            subtitle: 'CS101 - Introduction to Programming',
-            time: '2 hours ago',
-            icon: Icons.check_circle,
-            color: Colors.green,
-          ),
-          
-          const SizedBox(height: 12),
-          
-          _buildActivityCard(
-            context,
-            title: 'QR Code Generated',
-            subtitle: 'IT202 - Database Management',
-            time: '4 hours ago',
-            icon: Icons.qr_code,
-            color: Colors.blue,
-          ),
-          
-          const SizedBox(height: 12),
-          
-          _buildActivityCard(
-            context,
-            title: 'New Student Added',
-            subtitle: 'CS201 - Data Structures',
-            time: 'Yesterday',
-            icon: Icons.person_add,
-            color: Colors.purple,
-          ),
         ],
       ),
     );
@@ -512,6 +541,36 @@ class DashboardContent extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTimeUnit(String value, String label) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.blue.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
     );
   }
 
