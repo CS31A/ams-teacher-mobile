@@ -1,27 +1,26 @@
 import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
+import 'services/storage_service.dart';
 
-void main() {
-  runApp(const TeacherApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await StorageService.init();
+  runApp(const MyApp());
 }
 
-class TeacherApp extends StatelessWidget {
-  const TeacherApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Teacher Portal',
-      debugShowCheckedModeBanner: false,
+      title: 'AMS Teacher',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
-          brightness: Brightness.light,
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1E3A8A)),
         useMaterial3: true,
-        fontFamily: 'Roboto',
       ),
       home: const LoginScreen(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
