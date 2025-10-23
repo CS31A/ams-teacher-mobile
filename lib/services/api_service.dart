@@ -180,7 +180,7 @@ class ApiService {
           print('📦 Sample section structure: ${json.encode(sections[0])}');
         }
         
-        // Group sections by course/program
+        // Process sections - group by section name (BSCS31A, BSBA31C, etc.)
         final Map<String, List<Map<String, dynamic>>> groupedSections = {};
         
         for (var section in sections) {
@@ -202,27 +202,18 @@ class ApiService {
             }
           }
           
-          // Extract program/course name - try multiple possible paths
-          String programName = 'Unknown Program';
+          // Use the section name as the group key (BSCS31A, BSBA31C, etc.)
+          String sectionName = section['name'] ?? 
+                              section['Name'] ?? 
+                              section['section_name'] ?? 
+                              section['sectionName'] ?? 
+                              'N/A';
           
-          // Try different nested structures
-          if (section['course'] != null && section['course']['name'] != null) {
-            programName = section['course']['name'];
-          } else if (section['subject'] != null && section['subject']['course'] != null) {
-            programName = section['subject']['course']['name'] ?? section['subject']['course']['Name'] ?? 'Unknown Program';
-          } else if (section['Subject'] != null && section['Subject']['Course'] != null) {
-            programName = section['Subject']['Course']['Name'] ?? section['Subject']['Course']['name'] ?? 'Unknown Program';
-          } else if (section['courseName'] != null) {
-            programName = section['courseName'];
-          } else if (section['CourseName'] != null) {
-            programName = section['CourseName'];
-          }
+          print('📚 Section name: $sectionName');
           
-          print('📚 Program name extracted: $programName');
-          
-          // Initialize program list if not exists
-          if (!groupedSections.containsKey(programName)) {
-            groupedSections[programName] = [];
+          // Initialize section list if not exists
+          if (!groupedSections.containsKey(sectionName)) {
+            groupedSections[sectionName] = [];
           }
           
           // Extract subject information - try multiple paths
@@ -239,13 +230,6 @@ class ApiService {
             subjectName = section['subjectName'];
             subjectCode = section['subjectCode'] ?? 'N/A';
           }
-          
-          // Extract section name
-          String sectionName = section['name'] ?? 
-                              section['Name'] ?? 
-                              section['section_name'] ?? 
-                              section['sectionName'] ?? 
-                              'N/A';
           
           // Extract schedule and room
           String schedule = section['schedule'] ?? 
@@ -265,10 +249,10 @@ class ApiService {
                             section['StudentsCount'] ?? 
                             0;
           
-          print('✅ Adding section: $subjectCode - $subjectName ($sectionName)');
+          print('✅ Adding to section group: $sectionName');
           
-          // Add section to program
-          groupedSections[programName]!.add({
+          // Add subject to section group
+          groupedSections[sectionName]!.add({
             'sectionId': section['id'] ?? section['Id'],
             'name': subjectName,
             'code': subjectCode,
@@ -279,9 +263,9 @@ class ApiService {
           });
         }
         
-        print('✅ Grouped sections: ${groupedSections.keys.length} programs');
-        groupedSections.forEach((program, sections) {
-          print('  📚 $program: ${sections.length} sections');
+        print('✅ Grouped sections: ${groupedSections.keys.length} section groups');
+        groupedSections.forEach((sectionName, subjects) {
+          print('  📚 $sectionName: ${subjects.length} subjects');
         });
         
         return {

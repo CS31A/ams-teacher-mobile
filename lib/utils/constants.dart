@@ -1,8 +1,13 @@
 // lib/utils/constants.dart
 class ApiConstants {
-  // For Flutter Web and Physical Device
-  static const String baseUrl = 'http://192.168.254.106:8080';
+  // OPTION 1: Try HTTPS first (matches what Scalar is using)
+  static const String baseUrl = 'https://localhost:8081';
   
+  // OPTION 2: If HTTPS doesn't work, try HTTP on port 5142
+  // static const String baseUrl = 'http://localhost:5142';
+  
+  // OPTION 3: For Physical Device (update IP if needed)
+  // static const String baseUrl = 'http://192.168.254.106:5142';
   
   // Auth endpoints
   static const String loginEndpoint = '/api/account/login';
@@ -14,8 +19,6 @@ class ApiConstants {
   static const String sectionsEndpoint = '/api/sections';
   static String sectionDetailsEndpoint(int id) => '/api/sections/$id';
   static String sectionStudentsEndpoint(int id) => '/api/sections/$id/active-students';
-  
-  // ... rest of your endpoints
   
   // Timeout durations
   static const Duration connectionTimeout = Duration(seconds: 15);

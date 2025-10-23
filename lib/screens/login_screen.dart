@@ -638,10 +638,14 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // FIXED: Changed Expanded to Flexible and added text wrapping + scrollable container
   Widget _buildErrorMessage(BuildContext context) {
     if (_errorMessage == null) return const SizedBox.shrink();
     
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: ResponsiveUtils.getResponsiveSpacing(context, mobile: 100, tablet: 120, desktop: 150),
+      ),
       padding: ResponsiveUtils.getResponsivePadding(context),
       margin: EdgeInsets.only(bottom: ResponsiveUtils.getResponsiveSpacing(context, mobile: 16, tablet: 20, desktop: 24)),
       decoration: BoxDecoration(
@@ -649,21 +653,26 @@ class _LoginScreenState extends State<LoginScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.red.withOpacity(0.4)),
       ),
-      child: Row(
-        children: [
-          Icon(Icons.error_outline, color: Colors.red[300], size: 20),
-          SizedBox(width: ResponsiveUtils.getResponsiveSpacing(context, mobile: 8, tablet: 12, desktop: 16)),
-          Expanded(
-            child: Text(
-              _errorMessage!,
-              style: TextStyle(
-                color: Colors.red[200], 
-                fontWeight: FontWeight.w500,
-                fontSize: ResponsiveUtils.getResponsiveFontSize(context, mobile: 12, tablet: 14, desktop: 16),
+      child: SingleChildScrollView(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.error_outline, color: Colors.red[300], size: 20),
+            SizedBox(width: ResponsiveUtils.getResponsiveSpacing(context, mobile: 8, tablet: 12, desktop: 16)),
+            Flexible(
+              child: Text(
+                _errorMessage!,
+                style: TextStyle(
+                  color: Colors.red[200], 
+                  fontWeight: FontWeight.w500,
+                  fontSize: ResponsiveUtils.getResponsiveFontSize(context, mobile: 12, tablet: 14, desktop: 16),
+                ),
+                softWrap: true,
+                overflow: TextOverflow.visible,
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
