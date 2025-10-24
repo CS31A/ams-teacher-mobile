@@ -198,7 +198,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         
                         _buildClassCard(
                           'Mathematics 101',
+                          '00001',
                           'Room 305 • 10:30 AM',
+                          'Monday 08:00-10:00',
                           'Monday, June 10, 2024',
                           _formatDuration(currentClassTimeLeft),
                           true, // is current class
@@ -219,7 +221,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         
                         _buildClassCard(
                           'Science 201',
+                          '00003',
                           'Room 205 • 12:00 PM',
+                          'Monday 12:00-14:00',
                           'Monday, June 10, 2024',
                           _formatDuration(nextClassTimeLeft),
                           false, // is next class
@@ -360,7 +364,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildClassCard(String course, String location, String date, String countdown, bool isCurrent) {
+  Widget _buildClassCard(
+    String course, 
+    String code,
+    String location, 
+    String schedule,
+    String date, 
+    String countdown, 
+    bool isCurrent
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -426,10 +438,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
+                  code,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
                   location,
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.9),
                     fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  schedule,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

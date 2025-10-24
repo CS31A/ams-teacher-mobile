@@ -380,34 +380,6 @@ class _SectionsScreenState extends State<SectionsScreen> {
             fontSize: ResponsiveUtils.getResponsiveFontSize(context, mobile: 14, tablet: 16, desktop: 18),
           ),
         ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              section['code'],
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: ResponsiveUtils.getResponsiveFontSize(context, mobile: 10, tablet: 12, desktop: 14),
-              ),
-            ),
-            if (section['schedule'] != null && section['schedule'].toString().isNotEmpty)
-              Text(
-                section['schedule'],
-                style: TextStyle(
-                  color: Colors.grey[500],
-                  fontSize: ResponsiveUtils.getResponsiveFontSize(context, mobile: 9, tablet: 11, desktop: 13),
-                ),
-              ),
-            if (section['room'] != null && section['room'].toString().isNotEmpty)
-              Text(
-                'Room: ${section['room']}',
-                style: TextStyle(
-                  color: Colors.grey[500],
-                  fontSize: ResponsiveUtils.getResponsiveFontSize(context, mobile: 9, tablet: 11, desktop: 13),
-                ),
-              ),
-          ],
-        ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
