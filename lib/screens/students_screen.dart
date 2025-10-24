@@ -52,15 +52,47 @@ class _StudentsScreenState extends State<StudentsScreen> {
     }
   }
 
+  // Helper to get display name from student data
+  String _getStudentDisplayName(Map<String, dynamic> student) {
+    // Try to get full name from firstName, middleName, lastName
+    final firstName = student['firstName']?.toString().trim() ?? '';
+    final middleName = student['middleName']?.toString().trim() ?? '';
+    final lastName = student['lastName']?.toString().trim() ?? '';
+    
+    // Build full name
+    List<String> nameParts = [];
+    if (firstName.isNotEmpty) nameParts.add(firstName);
+    if (middleName.isNotEmpty) nameParts.add(middleName);
+    if (lastName.isNotEmpty) nameParts.add(lastName);
+    
+    if (nameParts.isNotEmpty) {
+      return nameParts.join(' ');
+    }
+    
+    // Fallback to email username if name fields are empty
+    final email = student['email']?.toString().trim() ?? '';
+    if (email.isNotEmpty) {
+      // Extract username from email (before @)
+      final username = email.split('@').first;
+      return username;
+    }
+    
+    // Final fallback to Student ID
+    return 'Student ${student['studentId'] ?? 'Unknown'}';
+  }
+
   List<Map<String, dynamic>> get _filteredStudents {
     if (_searchQuery.isEmpty) return _students;
     
     return _students.where((student) {
-      final fullName = '${student['firstName']} ${student['middleName']} ${student['lastName']}'.toLowerCase();
+      final displayName = _getStudentDisplayName(student).toLowerCase();
       final studentId = student['studentId'].toString().toLowerCase();
+      final email = student['email']?.toString().toLowerCase() ?? '';
       final query = _searchQuery.toLowerCase();
       
-      return fullName.contains(query) || studentId.contains(query);
+      return displayName.contains(query) || 
+             studentId.contains(query) || 
+             email.contains(query);
     }).toList();
   }
 
@@ -312,8 +344,11 @@ class _StudentsScreenState extends State<StudentsScreen> {
   }
 
   Widget _buildStudentCard(BuildContext context, Map<String, dynamic> student, int index) {
-    final fullName = '${student['firstName']} ${student['middleName']} ${student['lastName']}'.trim();
-    final initials = _getInitials(fullName);
+    final displayName = _getStudentDisplayName(student);
+    final initials = _getInitials(displayName);
+    
+    // Check if we have actual name data
+    final hasNameData = (student['firstName']?.toString().trim() ?? '').isNotEmpty;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -346,7 +381,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
           ),
         ),
         title: Text(
-          fullName,
+          displayName,
           style: TextStyle(
             fontWeight: FontWeight.w600,
             color: const Color(0xFF1E3A8A),
@@ -372,13 +407,14 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   fontSize: ResponsiveUtils.getResponsiveFontSize(context, mobile: 11, tablet: 13, desktop: 15),
                 ),
               ),
-            Text(
-              '${student['program']} - Year ${student['yearLevel']}',
-              style: TextStyle(
-                color: Colors.grey[500],
-                fontSize: ResponsiveUtils.getResponsiveFontSize(context, mobile: 11, tablet: 13, desktop: 15),
+            if (hasNameData && student['program'] != null)
+              Text(
+                '${student['program']} - Year ${student['yearLevel'] ?? 'N/A'}',
+                style: TextStyle(
+                  color: Colors.grey[500],
+                  fontSize: ResponsiveUtils.getResponsiveFontSize(context, mobile: 11, tablet: 13, desktop: 15),
+                ),
               ),
-            ),
           ],
         ),
         trailing: Icon(
@@ -393,10 +429,12 @@ class _StudentsScreenState extends State<StudentsScreen> {
     );
   }
 
-  String _getInitials(String fullName) {
-    final parts = fullName.trim().split(' ');
-    if (parts.isEmpty) return '?';
-    if (parts.length == 1) return parts[0][0].toUpperCase();
+  String _getInitials(String displayName) {
+    final parts = displayName.trim().split(' ');
+    if (parts.isEmpty || displayName.isEmpty) return '?';
+    if (parts.length == 1) {
+      return parts[0].isNotEmpty ? parts[0][0].toUpperCase() : '?';
+    }
     return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
   }
 
@@ -415,7 +453,8 @@ class _StudentsScreenState extends State<StudentsScreen> {
   }
 
   void _showStudentDetails(BuildContext context, Map<String, dynamic> student) {
-    final fullName = '${student['firstName']} ${student['middleName']} ${student['lastName']}'.trim();
+    final displayName = _getStudentDisplayName(student);
+    final hasNameData = (student['firstName']?.toString().trim() ?? '').isNotEmpty;
     
     showModalBottomSheet(
       context: context,
@@ -452,12 +491,44 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   ),
             ),
             const SizedBox(height: 20),
-            _buildDetailRow(Icons.person, 'Full Name', fullName),
-            _buildDetailRow(Icons.badge, 'Student ID', student['studentId']),
+            if (hasNameData)
+              _buildDetailRow(Icons.person, 'Full Name', displayName)
+            else
+              _buildDetailRow(Icons.person_outline, 'Display Name', displayName),
+            _buildDetailRow(Icons.badge, 'Student ID', student['studentId']?.toString() ?? 'N/A'),
             if (student['email'] != null && student['email'].toString().isNotEmpty)
               _buildDetailRow(Icons.email, 'Email', student['email']),
-            _buildDetailRow(Icons.school, 'Program', student['program']),
-            _buildDetailRow(Icons.calendar_today, 'Year Level', 'Year ${student['yearLevel']}'),
+            if (hasNameData && student['program'] != null)
+              _buildDetailRow(Icons.school, 'Program', student['program']),
+            if (hasNameData && student['yearLevel'] != null)
+              _buildDetailRow(Icons.calendar_today, 'Year Level', 'Year ${student['yearLevel']}'),
+            if (!hasNameData)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.amber[700], size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Student profile incomplete',
+                          style: TextStyle(
+                            color: Colors.amber[700],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,

@@ -380,31 +380,10 @@ class _SectionsScreenState extends State<SectionsScreen> {
             fontSize: ResponsiveUtils.getResponsiveFontSize(context, mobile: 14, tablet: 16, desktop: 18),
           ),
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E3A8A).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                '${section['studentCount']} students',
-                style: TextStyle(
-                  color: const Color(0xFF1E3A8A),
-                  fontSize: ResponsiveUtils.getResponsiveFontSize(context, mobile: 10, tablet: 12, desktop: 14),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Icon(
-              Icons.chevron_right,
-              color: const Color(0xFF1E3A8A),
-              size: ResponsiveUtils.getResponsiveSpacing(context, mobile: 16, tablet: 20, desktop: 24),
-            ),
-          ],
+        trailing: Icon(
+          Icons.chevron_right,
+          color: const Color(0xFF1E3A8A),
+          size: ResponsiveUtils.getResponsiveSpacing(context, mobile: 16, tablet: 20, desktop: 24),
         ),
         onTap: () {
           Navigator.of(context).push(
