@@ -159,8 +159,7 @@ class _SectionsScreenState extends State<SectionsScreen> {
                 child: Column(
                   children: [
                     Image.asset(
-                                     'lib/images/aclc_logo.png',
-
+                      'lib/images/aclc_logo.png',
                       width: ResponsiveUtils.getResponsiveImageSize(context, mobile: 40, tablet: 50, desktop: 60),
                       height: ResponsiveUtils.getResponsiveImageSize(context, mobile: 40, tablet: 50, desktop: 60),
                       fit: BoxFit.contain,
@@ -294,7 +293,7 @@ class _SectionsScreenState extends State<SectionsScreen> {
               ),
               child: Column(
                 children: [
-                  // Program Header
+                  // Program Header (Course Name: BSBA31C, BSCS31A, etc.)
                   ListTile(
                     title: Text(
                       programName,
@@ -330,7 +329,7 @@ class _SectionsScreenState extends State<SectionsScreen> {
                     },
                   ),
 
-                  // Sections List
+                  // Subjects List
                   if (isExpanded) ...[
                     const Divider(height: 1),
                     ...sections.map((section) => _buildSectionCard(context, section)),
@@ -374,7 +373,7 @@ class _SectionsScreenState extends State<SectionsScreen> {
           ),
         ),
         title: Text(
-          '${section['name']} - Section ${section['section']}',
+          section['name'], // Just the subject name (e.g., "Programming Language")
           style: TextStyle(
             fontWeight: FontWeight.w600,
             color: const Color(0xFF1E3A8A),
@@ -394,6 +393,14 @@ class _SectionsScreenState extends State<SectionsScreen> {
             if (section['schedule'] != null && section['schedule'].toString().isNotEmpty)
               Text(
                 section['schedule'],
+                style: TextStyle(
+                  color: Colors.grey[500],
+                  fontSize: ResponsiveUtils.getResponsiveFontSize(context, mobile: 9, tablet: 11, desktop: 13),
+                ),
+              ),
+            if (section['room'] != null && section['room'].toString().isNotEmpty)
+              Text(
+                'Room: ${section['room']}',
                 style: TextStyle(
                   color: Colors.grey[500],
                   fontSize: ResponsiveUtils.getResponsiveFontSize(context, mobile: 9, tablet: 11, desktop: 13),
@@ -432,7 +439,7 @@ class _SectionsScreenState extends State<SectionsScreen> {
             MaterialPageRoute(
               builder: (context) => StudentsScreen(
                 sectionId: section['sectionId'],
-                subjectName: '${section['name']} - Section ${section['section']}',
+                subjectName: section['name'], // Just subject name
                 subjectCode: section['code'],
               ),
             ),

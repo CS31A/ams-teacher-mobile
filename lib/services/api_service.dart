@@ -133,15 +133,69 @@ class ApiService {
     }
   }
 
+  // ==================== INSTRUCTOR METHODS ====================
+
+  /// Get instructor profile
+  Future<Map<String, dynamic>> getInstructorProfile() async {
+    try {
+      final token = await StorageService.getToken();
+      
+      if (token == null) {
+        return {
+          'success': false,
+          'error': 'Not authenticated.',
+        };
+      }
+
+      final url = '${ApiConstants.baseUrl}/api/instructors/profile';
+      print('🌐 Fetching instructor profile from: $url');
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(
+        ApiConstants.connectionTimeout,
+        onTimeout: () => throw Exception('Connection timeout'),
+      );
+
+      print('📊 Profile Response Status: ${response.statusCode}');
+      print('📝 Profile Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'data': data,
+        };
+      } else {
+        return {
+          'success': false,
+          'error': 'Failed to load profile: ${response.statusCode}',
+        };
+      }
+    } catch (e) {
+      print('💥 Error in getInstructorProfile: $e');
+      return {
+        'success': false,
+        'error': 'Error: $e',
+      };
+    }
+  }
+
   // ==================== SECTIONS METHODS ====================
 
-  /// Get all sections for the logged-in instructor
+  /// Get all sections/subjects for the logged-in instructor
+  /// Groups schedules by section name and shows subjects under each section
   Future<Map<String, dynamic>> getInstructorSections() async {
     try {
       final token = await StorageService.getToken();
       final instructorId = await StorageService.getInstructorId();
       
-      print('🔑 Token: ${token != null ? "Present (${token.substring(0, 20)}...)" : "Missing"}');
+      print('🔑 Token: ${token != null ? "Present" : "Missing"}');
       print('👤 Instructor ID: $instructorId');
       
       if (token == null) {
@@ -151,9 +205,13 @@ class ApiService {
         };
       }
 
-      // Construct the full URL
-      final url = '${ApiConstants.baseUrl}${ApiConstants.sectionsEndpoint}';
-      print('🌐 Fetching sections from: $url');
+      // We don't need instructor ID check anymore since /api/schedules uses JWT
+      // Remove this check:
+      // if (instructorId == null) { ... }
+
+      // Get all schedules for this instructor (JWT-based, no ID needed)
+      final url = '${ApiConstants.baseUrl}/api/schedules';
+      print('🌐 Fetching instructor schedules from: $url');
 
       final response = await http.get(
         Uri.parse(url),
@@ -168,124 +226,120 @@ class ApiService {
       );
 
       print('📊 Response Status: ${response.statusCode}');
-      print('📝 Full Response Body: ${response.body}');
-
+      
       if (response.statusCode == 200) {
-        final List<dynamic> sections = json.decode(response.body);
+        final List<dynamic> schedules = json.decode(response.body);
+        print('🔍 Total schedules received: ${schedules.length}');
         
-        print('🔍 Total sections received: ${sections.length}');
-        
-        // Debug: Print first section structure
-        if (sections.isNotEmpty) {
-          print('📦 Sample section structure: ${json.encode(sections[0])}');
+        if (schedules.isEmpty) {
+          print('⚠️ No schedules found for instructor');
+          return {
+            'success': true,
+            'data': {},
+          };
         }
         
-        // Process sections - group by section name (BSCS31A, BSBA31C, etc.)
-        final Map<String, List<Map<String, dynamic>>> groupedSections = {};
+        // Structure: Section -> [Subjects]
+        // We group by Section.Name (BSCS31A, BSBA31C, etc.)
+        // Each section contains multiple subjects (from schedules)
         
-        for (var section in sections) {
-          print('-------------------');
-          print('Processing section: ${section['id']}');
-          print('Full section data: ${json.encode(section)}');
+        final Map<String, List<Map<String, dynamic>>> sectionSubjects = {};
+        
+        for (var schedule in schedules) {
+          print('---Processing Schedule ID: ${schedule['id']}---');
           
-          // Filter: Only include sections for this instructor
-          if (instructorId != null) {
-            final sectionInstructorId = section['instructorId'] ?? 
-                                        section['instructor_id'] ?? 
-                                        section['InstructorId'];
-            
-            print('Section instructor ID: $sectionInstructorId vs Current: $instructorId');
-            
-            if (sectionInstructorId?.toString() != instructorId.toString()) {
-              print('⏭️  Skipping section ${section['id']} - Different instructor');
-              continue;
-            }
+          // Extract section info
+          var sectionData = schedule['section'];
+          if (sectionData == null) {
+            print('⏭️ Skipping - No section data');
+            continue;
           }
           
-          // Use the section name as the group key (BSCS31A, BSBA31C, etc.)
-          String sectionName = section['name'] ?? 
-                              section['Name'] ?? 
-                              section['section_name'] ?? 
-                              section['sectionName'] ?? 
-                              'N/A';
+          String sectionName = sectionData['name'] ?? 'Unknown';
+          int sectionId = sectionData['id'] ?? 0;
           
-          print('📚 Section name: $sectionName');
+          print('📝 Section: $sectionName (ID: $sectionId)');
           
-          // Initialize section list if not exists
-          if (!groupedSections.containsKey(sectionName)) {
-            groupedSections[sectionName] = [];
+          // Initialize section if not exists
+          if (!sectionSubjects.containsKey(sectionName)) {
+            sectionSubjects[sectionName] = [];
           }
           
-          // Extract subject information - try multiple paths
-          String subjectName = 'Unknown Subject';
-          String subjectCode = 'N/A';
+          // Extract subject info
+          var subjectData = schedule['subject'];
+          String subjectName = subjectData?['name'] ?? 'Unknown Subject';
+          String subjectCode = subjectData?['code'] ?? 'N/A';
+          int subjectId = subjectData?['id'] ?? 0;
           
-          if (section['subject'] != null) {
-            subjectName = section['subject']['name'] ?? section['subject']['Name'] ?? 'Unknown Subject';
-            subjectCode = section['subject']['code'] ?? section['subject']['Code'] ?? 'N/A';
-          } else if (section['Subject'] != null) {
-            subjectName = section['Subject']['Name'] ?? section['Subject']['name'] ?? 'Unknown Subject';
-            subjectCode = section['Subject']['Code'] ?? section['Subject']['code'] ?? 'N/A';
-          } else if (section['subjectName'] != null) {
-            subjectName = section['subjectName'];
-            subjectCode = section['subjectCode'] ?? 'N/A';
+          print('📚 Subject: $subjectName ($subjectCode)');
+          
+          // Extract classroom info
+          var classroomData = schedule['classroom'];
+          String room = classroomData?['name'] ?? '';
+          
+          // Extract schedule time
+          String timeIn = schedule['timeIn'] ?? '';
+          String timeOut = schedule['timeOut'] ?? '';
+          String dayOfWeek = schedule['dayOfWeek'] ?? '';
+          
+          String scheduleStr = '';
+          if (dayOfWeek.isNotEmpty && timeIn.isNotEmpty && timeOut.isNotEmpty) {
+            // Format: "Monday 08:00:00-10:00:00" -> "Monday 08:00-10:00"
+            String formattedTimeIn = timeIn.substring(0, 5); // Get HH:MM
+            String formattedTimeOut = timeOut.substring(0, 5); // Get HH:MM
+            scheduleStr = '$dayOfWeek $formattedTimeIn-$formattedTimeOut';
           }
           
-          // Extract schedule and room
-          String schedule = section['schedule'] ?? 
-                           section['Schedule'] ?? 
-                           section['timeSlot'] ?? 
-                           '';
+          print('⏰ Schedule: $scheduleStr');
+          print('🏫 Room: $room');
           
-          String room = section['room'] ?? 
-                       section['Room'] ?? 
-                       section['classroom'] ?? 
-                       '';
-          
-          // Extract student count
-          int studentCount = section['student_count'] ?? 
-                            section['studentCount'] ?? 
-                            section['students_count'] ?? 
-                            section['StudentsCount'] ?? 
-                            0;
-          
-          print('✅ Adding to section group: $sectionName');
-          
-          // Add subject to section group
-          groupedSections[sectionName]!.add({
-            'sectionId': section['id'] ?? section['Id'],
-            'name': subjectName,
-            'code': subjectCode,
-            'section': sectionName,
-            'schedule': schedule,
+          // Add subject to section
+          sectionSubjects[sectionName]!.add({
+            'sectionId': sectionId,
+            'sectionName': sectionName,
+            'subjectId': subjectId,
+            'subjectName': subjectName,
+            'subjectCode': subjectCode,
+            'name': subjectName, // For display
+            'code': subjectCode, // For display
+            'schedule': scheduleStr,
             'room': room,
-            'studentCount': studentCount,
+            'scheduleId': schedule['id'],
+            'studentCount': 0, // Will be loaded separately
           });
+          
+          print('✅ Added subject to section');
         }
         
-        print('✅ Grouped sections: ${groupedSections.keys.length} section groups');
-        groupedSections.forEach((sectionName, subjects) {
-          print('  📚 $sectionName: ${subjects.length} subjects');
+        print('✅ Grouped by section: ${sectionSubjects.keys.length} sections');
+        sectionSubjects.forEach((section, subjects) {
+          print('  📚 $section: ${subjects.length} subjects');
         });
         
         return {
           'success': true,
-          'data': groupedSections,
+          'data': sectionSubjects,
         };
+        
       } else if (response.statusCode == 401) {
-        print('🔒 Unauthorized - Token may be expired');
         return {
           'success': false,
           'error': 'Session expired. Please login again.',
         };
       } else if (response.statusCode == 403) {
-        print('🚫 Forbidden - Check backend permissions');
         return {
           'success': false,
-          'error': 'Access denied. Your account may not have permission to view sections.',
+          'error': 'Access denied.',
+        };
+      } else if (response.statusCode == 404) {
+        print('❌ Not Found - No schedules for this instructor');
+        return {
+          'success': true,
+          'data': {},
         };
       } else {
         print('❌ Unexpected status: ${response.statusCode}');
+        print('Response: ${response.body}');
         return {
           'success': false,
           'error': 'Failed to load sections: ${response.statusCode}',
@@ -303,6 +357,7 @@ class ApiService {
   }
 
   /// Get students for a specific section
+  /// This gets ALL students in a section
   Future<Map<String, dynamic>> getSectionStudents(int sectionId) async {
     try {
       final token = await StorageService.getToken();
@@ -314,7 +369,8 @@ class ApiService {
         };
       }
 
-      final url = '${ApiConstants.baseUrl}${ApiConstants.sectionStudentsEndpoint(sectionId)}';
+      // Use the correct endpoint for getting section students
+      final url = '${ApiConstants.baseUrl}/api/sections/$sectionId/all-students';
       print('🌐 Fetching students from: $url');
 
       final response = await http.get(
@@ -330,29 +386,18 @@ class ApiService {
       );
 
       print('📊 Students Response Status: ${response.statusCode}');
-      print('📝 Students Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final List<dynamic> students = json.decode(response.body);
         
         final processedStudents = students.map((student) {
           return {
-            'id': student['id'] ?? student['Id'],
-            'studentId': student['student_id'] ?? student['studentId'] ?? student['StudentId'] ?? student['id_number'] ?? 'N/A',
-            'firstName': student['first_name'] ?? student['firstName'] ?? student['FirstName'] ?? student['firstname'] ?? '',
-            'lastName': student['last_name'] ?? student['lastName'] ?? student['LastName'] ?? student['lastname'] ?? '',
-            'middleName': student['middle_name'] ?? student['middleName'] ?? student['MiddleName'] ?? student['middlename'] ?? '',
-            'email': student['email'] ?? student['Email'] ?? '',
-            'program': student['course']?['name'] ?? 
-                      student['Course']?['Name'] ??
-                      student['program']?['name'] ?? 
-                      student['Program']?['Name'] ??
-                      'N/A',
-            'yearLevel': student['year_level']?.toString() ?? 
-                        student['yearLevel']?.toString() ??
-                        student['YearLevel']?.toString() ??
-                        student['year']?.toString() ?? 
-                        'N/A',
+            'id': student['id'] ?? 0,
+            'email': student['email'] ?? '',
+            'isRegular': student['isRegular'] ?? false,
+            'userId': student['userId'] ?? '',
+            'sectionId': student['sectionId'] ?? 0,
+            'studentId': student['id']?.toString() ?? 'N/A',
           };
         }).toList();
         
@@ -406,7 +451,7 @@ class ApiService {
         };
       }
 
-      final url = '${ApiConstants.baseUrl}${ApiConstants.sectionDetailsEndpoint(sectionId)}';
+      final url = '${ApiConstants.baseUrl}/api/sections/$sectionId';
       print('🌐 Fetching section details from: $url');
 
       final response = await http.get(
@@ -429,17 +474,9 @@ class ApiService {
         return {
           'success': true,
           'data': {
-            'id': section['id'] ?? section['Id'],
-            'name': section['name'] ?? section['Name'] ?? section['section_name'] ?? 'N/A',
-            'subjectName': section['subject']?['name'] ?? section['Subject']?['Name'] ?? 'Unknown',
-            'subjectCode': section['subject']?['code'] ?? section['Subject']?['Code'] ?? 'N/A',
-            'schedule': section['schedule'] ?? section['Schedule'] ?? '',
-            'room': section['room'] ?? section['Room'] ?? '',
-            'programName': section['subject']?['course']?['name'] ?? 
-                          section['Subject']?['Course']?['Name'] ??
-                          section['course']?['name'] ?? 
-                          section['Course']?['Name'] ??
-                          'Unknown',
+            'id': section['id'] ?? 0,
+            'name': section['name'] ?? 'N/A',
+            'courseId': section['courseId'] ?? 0,
           },
         };
       } else if (response.statusCode == 401) {

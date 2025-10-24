@@ -44,13 +44,45 @@ class _LoginScreenState extends State<LoginScreen> {
         _passwordController.text,
       );
 
-      // Response is a Map<String, dynamic>
+      print('📦 Login Response: $response');
+
       if (response['success'] == true && response['accessToken'] != null) {
-        // Save tokens securely
+        // Save tokens first
         await StorageService.saveTokens(
           response['accessToken'] as String,
           response['refreshToken'] as String? ?? '',
         );
+        
+        print('✅ Tokens saved, fetching instructor profile...');
+        
+        // Now fetch instructor profile to get the instructor ID
+        try {
+          final profileResponse = await _apiService.getInstructorProfile();
+          
+          print('📦 Profile Response: $profileResponse');
+          
+          if (profileResponse['success'] == true && profileResponse['data'] != null) {
+            final profileData = profileResponse['data'];
+            
+            // Extract instructor ID from profile and convert to String
+            String? instructorId;
+            if (profileData['id'] != null) {
+              instructorId = profileData['id'].toString();
+            } else if (profileData['Id'] != null) {
+              instructorId = profileData['Id'].toString();
+            }
+            
+            if (instructorId != null) {
+              await StorageService.saveInstructorId(instructorId);
+              print('✅ Instructor ID saved: $instructorId');
+            } else {
+              print('⚠️ WARNING: No instructor ID in profile!');
+            }
+          }
+        } catch (profileError) {
+          print('⚠️ Failed to fetch profile: $profileError');
+          // Continue anyway, sections will load via JWT token
+        }
         
         if (mounted) {
           Navigator.of(context).pushReplacement(
@@ -66,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Unable to connect to server. Please check your internet connection. Error: $e';
+        _errorMessage = 'Unable to connect to server. Please check your internet connection.';
       });
       print('Login error: $e');
     } finally {
@@ -398,7 +430,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Image.asset(
-                      'images/aclc_logo.png',
+                    'lib/images/aclc_logo.png',
                     width: ResponsiveUtils.getResponsiveImageSize(
                       context,
                       mobile: 200,
@@ -638,7 +670,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // FIXED: Changed Expanded to Flexible and added text wrapping + scrollable container
   Widget _buildErrorMessage(BuildContext context) {
     if (_errorMessage == null) return const SizedBox.shrink();
     
