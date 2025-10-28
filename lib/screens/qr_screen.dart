@@ -20,13 +20,20 @@ class QrScreen extends StatefulWidget {
   State<QrScreen> createState() => _QrScreenState();
 }
 
-class _QrScreenState extends State<QrScreen> {
+class _QrScreenState extends State<QrScreen> with SingleTickerProviderStateMixin {
   // Session state
   bool _sessionStarted = false;
   Duration _classTimeLeft = Duration.zero;
   
+  // Animation
+  late AnimationController _animationController;
+  
   // Form state
   final TextEditingController _roomController = TextEditingController();
+  final FocusNode _roomFocusNode = FocusNode();
+  List<String> _filteredRooms = [];
+  bool _showRoomSuggestions = false;
+  
   final List<String> _subjects = <String>[
     'Select Subject',
     'Mathematics 101',
@@ -41,6 +48,28 @@ class _QrScreenState extends State<QrScreen> {
   int _endMinute = 15;
 
   bool _showResult = false;
+  
+  // Generate all available rooms
+  List<String> _getAllRooms() {
+    List<String> rooms = [];
+    // 100 series (101-110)
+    for (int i = 101; i <= 110; i++) {
+      rooms.add(i.toString());
+    }
+    // 200 series (201-210)
+    for (int i = 201; i <= 210; i++) {
+      rooms.add(i.toString());
+    }
+    // 300 series (301-310)
+    for (int i = 301; i <= 310; i++) {
+      rooms.add(i.toString());
+    }
+    // SLAB rooms
+    for (int i = 1; i <= 5; i++) {
+      rooms.add('SLAB $i');
+    }
+    return rooms;
+  }
 
   // Validation method to check if all fields are filled
   bool get _isFormValid {
@@ -51,16 +80,52 @@ class _QrScreenState extends State<QrScreen> {
   @override
   void initState() {
     super.initState();
-    // Add listener to room controller to trigger rebuild when text changes
-    _roomController.addListener(() {
-      setState(() {});
-    });
+    
+    // Initialize animation controller for logo
+    _animationController = AnimationController(
+      duration: const Duration(seconds: 3),
+      vsync: this,
+    )..repeat();
+    
+    // Add listener to room controller to filter suggestions
+    _roomController.addListener(_filterRooms);
     
     // Initialize with current class data if available
     if (widget.currentClass != null) {
       _selectedSubject = widget.currentClass!['subjectName'] ?? 'Select Subject';
       _roomController.text = widget.currentClass!['room'] ?? '';
     }
+  }
+  
+  void _filterRooms() {
+    final query = _roomController.text.trim().toUpperCase();
+    
+    if (query.isEmpty) {
+      setState(() {
+        _showRoomSuggestions = false;
+        _filteredRooms = [];
+      });
+      return;
+    }
+    
+    final allRooms = _getAllRooms();
+    final filtered = allRooms.where((room) {
+      return room.toUpperCase().startsWith(query);
+    }).toList();
+    
+    setState(() {
+      _filteredRooms = filtered;
+      _showRoomSuggestions = filtered.isNotEmpty;
+    });
+  }
+  
+  void _selectRoom(String room) {
+    _roomController.text = room;
+    setState(() {
+      _showRoomSuggestions = false;
+      _filteredRooms = [];
+    });
+    _roomFocusNode.unfocus();
   }
   
   void _startSession() {
@@ -81,7 +146,7 @@ class _QrScreenState extends State<QrScreen> {
           _classTimeLeft = Duration.zero;
         }
         
-        setState(() {});
+      setState(() {});
         _startCountdown();
       }
     });
@@ -101,7 +166,9 @@ class _QrScreenState extends State<QrScreen> {
 
   @override
   void dispose() {
+    _animationController.dispose();
     _roomController.dispose();
+    _roomFocusNode.dispose();
     super.dispose();
   }
 
@@ -136,7 +203,7 @@ class _QrScreenState extends State<QrScreen> {
                   children: [
                     // Logo (replaces back button)
                     Image.asset(
-                      'lib/images/aclc_logo.png',
+                                      'lib/images/aclc_logo.png',
                       width: 50,
                       height: 50,
                       fit: BoxFit.contain,
@@ -198,26 +265,79 @@ class _QrScreenState extends State<QrScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo
-              Container(
-                padding: const EdgeInsets.all(40),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 30,
-                      spreadRadius: 5,
-                    ),
-                  ],
-                ),
-                child: Image.asset(
-                  'lib/images/aclc_logo.png',
-                  width: 150,
-                  height: 150,
-                  fit: BoxFit.contain,
-                ),
+              // Logo with Animated Light Effect
+              AnimatedBuilder(
+                animation: _animationController,
+                builder: (context, child) {
+                  return Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Outer rotating light circles
+                      Transform.rotate(
+                        angle: _animationController.value * 2 * 3.14159,
+                        child: Container(
+                          width: 280,
+                          height: 280,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: SweepGradient(
+                              colors: [
+                                Colors.white.withOpacity(0.0),
+                                Colors.white.withOpacity(0.3),
+                                Colors.white.withOpacity(0.6),
+                                Colors.white.withOpacity(0.3),
+                                Colors.white.withOpacity(0.0),
+                              ],
+                              stops: const [0.0, 0.25, 0.5, 0.75, 1.0],
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Second rotating light (opposite direction)
+                      Transform.rotate(
+                        angle: -_animationController.value * 2 * 3.14159,
+                        child: Container(
+                          width: 260,
+                          height: 260,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: SweepGradient(
+                              colors: [
+                                Colors.white.withOpacity(0.0),
+                                Colors.white.withOpacity(0.2),
+                                Colors.white.withOpacity(0.4),
+                                Colors.white.withOpacity(0.2),
+                                Colors.white.withOpacity(0.0),
+                              ],
+                              stops: const [0.0, 0.25, 0.5, 0.75, 1.0],
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Logo container
+                      Container(
+                        padding: const EdgeInsets.all(40),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 30,
+                              spreadRadius: 5,
+                            ),
+                          ],
+                        ),
+                        child: Image.asset(
+                          'lib/images/aclc_logo.png',
+                          width: 150,
+                          height: 150,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
               
               const SizedBox(height: 60),
@@ -435,8 +555,8 @@ class _QrScreenState extends State<QrScreen> {
 
   Widget _buildForm(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Text(
             'Subject',
             style: TextStyle(
@@ -484,26 +604,82 @@ class _QrScreenState extends State<QrScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          TextField(
-            controller: _roomController,
-            decoration: InputDecoration(
-              hintText: 'Enter classroom number',
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: _roomController,
+                focusNode: _roomFocusNode,
+                decoration: InputDecoration(
+                  hintText: 'Enter classroom number',
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF3B82F6)),
+                  ),
+                ),
               ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFF3B82F6)),
-              ),
-            ),
+              // Room suggestions dropdown
+              if (_showRoomSuggestions && _filteredRooms.isNotEmpty)
+                Container(
+                  margin: const EdgeInsets.only(top: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  constraints: const BoxConstraints(maxHeight: 200),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    itemCount: _filteredRooms.length,
+                    itemBuilder: (context, index) {
+                      final room = _filteredRooms[index];
+                      return InkWell(
+                        onTap: () => _selectRoom(room),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.meeting_room,
+                                size: 18,
+                                color: Colors.grey[600],
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                room,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: Colors.grey[800],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
           ),
 
           const SizedBox(height: 20),
