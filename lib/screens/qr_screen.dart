@@ -271,34 +271,59 @@ class _QrScreenState extends State<QrScreen> {
                 const SizedBox(height: 40),
               ],
               
-              // Start Session Button
+              // Start Session Button - Glossy Style
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40),
-                child: ElevatedButton(
-                  onPressed: _startSession,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: const Color(0xFF1E3A8A),
-                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 60),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(30),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.white,
+                        Colors.white.withOpacity(0.9),
+                      ],
                     ),
-                    elevation: 10,
-                    shadowColor: Colors.black.withOpacity(0.3),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Icon(Icons.play_circle_filled, size: 32),
-                      SizedBox(width: 12),
-                      Text(
-                        'Start Session',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.7),
+                        blurRadius: 10,
+                        offset: const Offset(0, -2),
                       ),
                     ],
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.5),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: _startSession,
+                      borderRadius: BorderRadius.circular(30),
+                      splashColor: const Color(0xFF1E3A8A).withOpacity(0.1),
+                      highlightColor: const Color(0xFF1E3A8A).withOpacity(0.05),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 60),
+                        child: const Center(
+                          child: Text(
+                            'Start Session',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E3A8A),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
