@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'attendance_screen.dart';
 import 'profile_screen.dart';
 import 'qr_screen.dart';
 import 'sections_screen.dart';
+import '../services/api_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -12,23 +14,173 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  // Countdown timers
-  Duration currentClassTimeLeft = const Duration(hours: 1, minutes: 30, seconds: 45);
-  Duration nextClassTimeLeft = const Duration(hours: 0, minutes: 45, seconds: 30);
+  final ApiService _apiService = ApiService();
   
-  late DateTime currentClassEnd;
-  late DateTime nextClassStart;
+  // Countdown timers
+  Duration currentClassTimeLeft = Duration.zero;
+  Duration nextClassTimeLeft = Duration.zero;
+  
+  DateTime? currentClassEnd;
+  DateTime? nextClassStart;
+  
+  // Schedule data
+  Map<String, dynamic>? currentClass;
+  Map<String, dynamic>? nextClass;
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    // Set current class end time (example: 1 hour 30 minutes from now)
-    currentClassEnd = DateTime.now().add(const Duration(hours: 1, minutes: 30, seconds: 45));
-    // Set next class start time (example: 2 hours 15 minutes from now)
-    nextClassStart = DateTime.now().add(const Duration(hours: 2, minutes: 15, seconds: 15));
+    _loadSchedules();
+  }
+
+  Future<void> _loadSchedules() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final result = await _apiService.getInstructorSections();
+
+    if (result['success']) {
+      // Extract all schedules from grouped sections
+      List<Map<String, dynamic>> allSchedules = [];
+      final groupedSections = result['data'] as Map<String, dynamic>;
+      
+      for (var subjects in groupedSections.values) {
+        allSchedules.addAll(List<Map<String, dynamic>>.from(subjects));
+      }
+
+      _findCurrentAndNextClass(allSchedules);
+      
+      setState(() {
+        _isLoading = false;
+      });
+      
+      // Start countdown timer
+      _startCountdown();
+    } else {
+      setState(() {
+        _errorMessage = result['error'] ?? 'Failed to load schedules';
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _findCurrentAndNextClass(List<Map<String, dynamic>> allSchedules) {
+    final now = DateTime.now();
+    final currentDay = DateFormat('EEEE').format(now); // e.g., "Monday"
     
-    // Start countdown timers
-    _startCountdown();
+    Map<String, dynamic>? foundCurrentClass;
+    Map<String, dynamic>? foundNextClass;
+    DateTime? foundCurrentClassEnd;
+    DateTime? foundNextClassStart;
+    
+    // Filter schedules for today
+    final todaySchedules = allSchedules.where((schedule) {
+      final scheduleStr = schedule['schedule']?.toString() ?? '';
+      return scheduleStr.startsWith(currentDay);
+    }).toList();
+    
+    // Parse and sort today's schedules by time
+    List<Map<String, dynamic>> parsedSchedules = [];
+    
+    for (var schedule in todaySchedules) {
+      final scheduleStr = schedule['schedule']?.toString() ?? '';
+      final parts = scheduleStr.split(' ');
+      
+      if (parts.length < 2) continue;
+      
+      final timeRange = parts[1]; // e.g., "08:00-10:00"
+      final timeParts = timeRange.split('-');
+      
+      if (timeParts.length != 2) continue;
+      
+      try {
+        final startTime = _parseTime(timeParts[0]);
+        final endTime = _parseTime(timeParts[1]);
+        
+        final startDateTime = DateTime(now.year, now.month, now.day, startTime.hour, startTime.minute);
+        final endDateTime = DateTime(now.year, now.month, now.day, endTime.hour, endTime.minute);
+        
+        parsedSchedules.add({
+          ...schedule,
+          'startDateTime': startDateTime,
+          'endDateTime': endDateTime,
+          'startTime': startTime,
+          'endTime': endTime,
+        });
+      } catch (e) {
+        print('Error parsing time for schedule: $scheduleStr - $e');
+      }
+    }
+    
+    // Sort by start time
+    parsedSchedules.sort((a, b) => 
+      (a['startDateTime'] as DateTime).compareTo(b['startDateTime'] as DateTime)
+    );
+    
+    // Find current class (ongoing now)
+    for (var schedule in parsedSchedules) {
+      final startDateTime = schedule['startDateTime'] as DateTime;
+      final endDateTime = schedule['endDateTime'] as DateTime;
+      
+      if (now.isAfter(startDateTime) && now.isBefore(endDateTime)) {
+        foundCurrentClass = schedule;
+        foundCurrentClassEnd = endDateTime;
+        break;
+      }
+    }
+    
+    // Find next class (starts after now)
+    for (var schedule in parsedSchedules) {
+      final startDateTime = schedule['startDateTime'] as DateTime;
+      
+      if (now.isBefore(startDateTime)) {
+        // Skip if this is already set as current class
+        if (foundCurrentClass != null && 
+            schedule['scheduleId'] == foundCurrentClass['scheduleId']) {
+          continue;
+        }
+        
+        foundNextClass = schedule;
+        foundNextClassStart = startDateTime;
+        break;
+      }
+    }
+    
+    // If no current class found, but there are future classes today
+    if (foundCurrentClass == null && foundNextClass == null && parsedSchedules.isNotEmpty) {
+      // Check if there's a class coming up today
+      for (var schedule in parsedSchedules) {
+        final startDateTime = schedule['startDateTime'] as DateTime;
+        if (now.isBefore(startDateTime)) {
+          foundNextClass = schedule;
+          foundNextClassStart = startDateTime;
+          break;
+        }
+      }
+    }
+    
+    setState(() {
+      currentClass = foundCurrentClass;
+      nextClass = foundNextClass;
+      currentClassEnd = foundCurrentClassEnd;
+      nextClassStart = foundNextClassStart;
+    });
+  }
+
+  TimeOfDay _parseTime(String timeStr) {
+    // Parse "HH:MM" format
+    final parts = timeStr.trim().split(':');
+    if (parts.length >= 2) {
+      return TimeOfDay(
+        hour: int.parse(parts[0]),
+        minute: int.parse(parts[1]),
+      );
+    }
+    throw FormatException('Invalid time format: $timeStr');
   }
 
   void _startCountdown() {
@@ -37,15 +189,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final now = DateTime.now();
         
         // Update current class countdown
-        if (now.isBefore(currentClassEnd)) {
-          currentClassTimeLeft = currentClassEnd.difference(now);
+        if (currentClassEnd != null && now.isBefore(currentClassEnd!)) {
+          currentClassTimeLeft = currentClassEnd!.difference(now);
         } else {
           currentClassTimeLeft = Duration.zero;
         }
         
         // Update next class countdown
-        if (now.isBefore(nextClassStart)) {
-          nextClassTimeLeft = nextClassStart.difference(now);
+        if (nextClassStart != null && now.isBefore(nextClassStart!)) {
+          nextClassTimeLeft = nextClassStart!.difference(now);
         } else {
           nextClassTimeLeft = Duration.zero;
         }
@@ -65,6 +217,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return "${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds";
     } else {
       return "$twoDigitMinutes:$twoDigitSeconds";
+    }
+  }
+
+  String _formatScheduleTime(String? schedule) {
+    if (schedule == null || schedule.isEmpty) return '';
+    
+    // Extract time from "Monday 08:00-10:00" format
+    final parts = schedule.split(' ');
+    if (parts.length < 2) return '';
+    
+    final timeRange = parts[1]; // "08:00-10:00"
+    final times = timeRange.split('-');
+    if (times.isEmpty) return '';
+    
+    // Return start time (e.g., "08:00 AM")
+    try {
+      final time = _parseTime(times[0]);
+      final hour = time.hour;
+      final minute = time.minute;
+      final period = hour >= 12 ? 'PM' : 'AM';
+      final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+      return '${displayHour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
+    } catch (e) {
+      return times[0]; // Return as is if parsing fails
     }
   }
 
@@ -185,49 +361,94 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         
                         const SizedBox(height: 20),
                         
-                        // Current Class Section
-                        Text(
-                          'Current Class',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF1E3A8A),
-                            fontSize: 20,
+                        // Loading or Error State
+                        if (_isLoading)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(40.0),
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1E3A8A)),
+                              ),
+                            ),
+                          )
+                        else if (_errorMessage != null)
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: Column(
+                                children: [
+                                  Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    _errorMessage!,
+                                    style: TextStyle(color: Colors.grey[600]),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  ElevatedButton.icon(
+                                    onPressed: _loadSchedules,
+                                    icon: const Icon(Icons.refresh),
+                                    label: const Text('Retry'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF1E3A8A),
+                                      foregroundColor: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        else ...[
+                          // Current Class Section
+                          Text(
+                            'Current Class',
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF1E3A8A),
+                              fontSize: 20,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        _buildClassCard(
-                          'Mathematics 101',
-                          '00001',
-                          'Room 305 • 10:30 AM',
-                          'Monday 08:00-10:00',
-                          'Monday, June 10, 2024',
-                          _formatDuration(currentClassTimeLeft),
-                          true, // is current class
-                        ),
-                        
-                        const SizedBox(height: 16),
-                        
-                        // Next Class Section
-                        Text(
-                          'Next Class',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF1E3A8A),
-                            fontSize: 20,
+                          const SizedBox(height: 16),
+                          
+                          if (currentClass != null)
+                            _buildClassCard(
+                              currentClass!['subjectName'] ?? 'Unknown Subject',
+                              currentClass!['subjectCode'] ?? 'N/A',
+                              '${currentClass!['room'] ?? 'TBA'} • ${_formatScheduleTime(currentClass!['schedule'])}',
+                              currentClass!['schedule'] ?? '',
+                              DateFormat('EEEE, MMMM d, yyyy').format(DateTime.now()),
+                              _formatDuration(currentClassTimeLeft),
+                              true, // is current class
+                            )
+                          else
+                            _buildNoClassCard('No ongoing class at the moment'),
+                          
+                          const SizedBox(height: 16),
+                          
+                          // Next Class Section
+                          Text(
+                            'Next Class',
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF1E3A8A),
+                              fontSize: 20,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        _buildClassCard(
-                          'Science 201',
-                          '00003',
-                          'Room 205 • 12:00 PM',
-                          'Monday 12:00-14:00',
-                          'Monday, June 10, 2024',
-                          _formatDuration(nextClassTimeLeft),
-                          false, // is next class
-                        ),
+                          const SizedBox(height: 16),
+                          
+                          if (nextClass != null)
+                            _buildClassCard(
+                              nextClass!['subjectName'] ?? 'Unknown Subject',
+                              nextClass!['subjectCode'] ?? 'N/A',
+                              '${nextClass!['room'] ?? 'TBA'} • ${_formatScheduleTime(nextClass!['schedule'])}',
+                              nextClass!['schedule'] ?? '',
+                              DateFormat('EEEE, MMMM d, yyyy').format(DateTime.now()),
+                              _formatDuration(nextClassTimeLeft),
+                              false, // is next class
+                            )
+                          else
+                            _buildNoClassCard('No upcoming class today'),
+                        ],
                       ],
                     ),
                   ),
@@ -264,7 +485,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             } else if (index == 2) {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => const QrScreen(),
+                  builder: (context) => QrScreen(
+                    currentClass: currentClass,
+                    currentClassEnd: currentClassEnd,
+                  ),
                 ),
               );
             } else if (index == 3) {
@@ -478,6 +702,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 color: Colors.white,
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoClassCard(String message) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF60A5FA), Color(0xFF93C5FD)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF60A5FA).withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.event_busy,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),

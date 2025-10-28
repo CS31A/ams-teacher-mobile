@@ -282,7 +282,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             } else if (index == 1) {
               Navigator.of(context).push(MaterialPageRoute(builder: (context) => const AttendanceScreen()));
             } else if (index == 2) {
-              Navigator.of(context).push(MaterialPageRoute(builder: (context) => const QrScreen()));
+              Navigator.of(context).push(MaterialPageRoute(builder: (context) => QrScreen()));
             } else if (index == 3) {
               Navigator.of(context).push(MaterialPageRoute(builder: (context) => const SectionsScreen()));
             }

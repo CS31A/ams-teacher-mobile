@@ -510,7 +510,7 @@ class _SectionsScreenState extends State<SectionsScreen> {
         Navigator.of(context).push(MaterialPageRoute(builder: (context) => const AttendanceScreen()));
         break;
       case 2:
-        Navigator.of(context).push(MaterialPageRoute(builder: (context) => const QrScreen()));
+        Navigator.of(context).push(MaterialPageRoute(builder: (context) => QrScreen()));
         break;
       case 3:
         // Already on sections

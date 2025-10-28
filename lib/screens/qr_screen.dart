@@ -6,13 +6,24 @@ import 'profile_screen.dart';
 import 'sections_screen.dart';
 
 class QrScreen extends StatefulWidget {
-  const QrScreen({super.key});
+  final Map<String, dynamic>? currentClass;
+  final DateTime? currentClassEnd;
+  
+  const QrScreen({
+    super.key,
+    this.currentClass,
+    this.currentClassEnd,
+  });
 
   @override
   State<QrScreen> createState() => _QrScreenState();
 }
 
 class _QrScreenState extends State<QrScreen> {
+  // Session state
+  bool _sessionStarted = false;
+  Duration _classTimeLeft = Duration.zero;
+  
   // Form state
   final TextEditingController _roomController = TextEditingController();
   final List<String> _subjects = <String>[
@@ -43,6 +54,48 @@ class _QrScreenState extends State<QrScreen> {
     _roomController.addListener(() {
       setState(() {});
     });
+    
+    // Initialize with current class data if available
+    if (widget.currentClass != null) {
+      _selectedSubject = widget.currentClass!['subjectName'] ?? 'Select Subject';
+      _roomController.text = widget.currentClass!['room'] ?? '';
+    }
+  }
+  
+  void _startSession() {
+    setState(() {
+      _sessionStarted = true;
+    });
+    _startCountdown();
+  }
+  
+  void _startCountdown() {
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted && _sessionStarted) {
+        final now = DateTime.now();
+        
+        if (widget.currentClassEnd != null && now.isBefore(widget.currentClassEnd!)) {
+          _classTimeLeft = widget.currentClassEnd!.difference(now);
+        } else {
+          _classTimeLeft = Duration.zero;
+        }
+        
+        setState(() {});
+        _startCountdown();
+      }
+    });
+  }
+  
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, "0");
+    String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
+    String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
+    
+    if (duration.inHours > 0) {
+      return "${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds";
+    } else {
+      return "$twoDigitMinutes:$twoDigitSeconds";
+    }
   }
 
   @override
@@ -53,6 +106,11 @@ class _QrScreenState extends State<QrScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Show start session screen if session hasn't started
+    if (!_sessionStarted) {
+      return _buildStartSessionScreen(context);
+    }
+    
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: Container(
@@ -77,8 +135,7 @@ class _QrScreenState extends State<QrScreen> {
                   children: [
                     // Logo (replaces back button)
                     Image.asset(
-                                      'lib/images/aclc_logo.png',
-
+                      'lib/images/aclc_logo.png',
                       width: 50,
                       height: 50,
                       fit: BoxFit.contain,
@@ -109,7 +166,7 @@ class _QrScreenState extends State<QrScreen> {
                       topRight: Radius.circular(25),
                     ),
                   ),
-                  child: _showResult ? _buildResult(context) : _buildForm(context),
+                  child: _showResult ? _buildResult(context) : _buildSessionContent(context),
                 ),
               ),
             ],
@@ -120,14 +177,243 @@ class _QrScreenState extends State<QrScreen> {
     );
   }
 
-  Widget _buildForm(BuildContext context) {
+  Widget _buildStartSessionScreen(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF1E3A8A), // Deep blue
+              Color(0xFF3B82F6), // Blue
+              Color(0xFF60A5FA), // Light blue
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Logo
+              Container(
+                padding: const EdgeInsets.all(40),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 30,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: Image.asset(
+                  'lib/images/aclc_logo.png',
+                  width: 150,
+                  height: 150,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              
+              const SizedBox(height: 60),
+              
+              // Current Class Info
+              if (widget.currentClass != null) ...[
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 40),
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.3),
+                      width: 2,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        widget.currentClass!['subjectName'] ?? 'Current Class',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        widget.currentClass!['subjectCode'] ?? '',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        '${widget.currentClass!['room'] ?? 'TBA'}',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 40),
+              ],
+              
+              // Start Session Button
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: ElevatedButton(
+                  onPressed: _startSession,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF1E3A8A),
+                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 60),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    elevation: 10,
+                    shadowColor: Colors.black.withOpacity(0.3),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.play_circle_filled, size: 32),
+                      SizedBox(width: 12),
+                      Text(
+                        'Start Session',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 20),
+              
+              // Back to Dashboard
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (context) => const DashboardScreen()),
+                  );
+                },
+                child: Text(
+                  'Back to Dashboard',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildSessionContent(BuildContext context) {
     return SingleChildScrollView(
-      primary: false,
-      physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Timer Card
+          if (widget.currentClass != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF1E3A8A).withOpacity(0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.timer,
+                    color: Colors.white,
+                    size: 48,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Class Time Remaining',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _formatDuration(_classTimeLeft),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 48,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    widget.currentClass!['subjectName'] ?? '',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.currentClass!['room'] ?? '',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+          
+          // Generate QR Form
+          _buildForm(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildForm(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
           Text(
             'Subject',
             style: TextStyle(
@@ -226,7 +512,6 @@ class _QrScreenState extends State<QrScreen> {
             ),
           ),
         ],
-      ),
     );
   }
 
