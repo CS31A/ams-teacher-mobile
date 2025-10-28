@@ -1,6 +1,9 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'root_scaffold.dart';
 import '../services/api_service.dart';
+import '../services/storage_service.dart';
+import '../utils/responsive_utils.dart';
+import 'dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -11,44 +14,98 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _identifierController = TextEditingController(); // username or email
+  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
+  final _apiService = ApiService();
   bool _isLoading = false;
+  bool _obscurePassword = true;
+  String? _errorMessage;
 
   @override
   void dispose() {
-    _identifierController.dispose();
+    _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _handleLogin() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
-      final result = await ApiService.login(
-        _identifierController.text.trim(),
-        _passwordController.text.trim(),
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final response = await _apiService.login(
+        _usernameController.text.trim(),
+        _passwordController.text,
       );
 
-      setState(() => _isLoading = false);
+      print('📦 Login Response: $response');
 
-      if (result != null) {
+      if (response['success'] == true && response['accessToken'] != null) {
+        // Save tokens first
+        await StorageService.saveTokens(
+          response['accessToken'] as String,
+          response['refreshToken'] as String? ?? '',
+        );
+        
+        print('✅ Tokens saved, fetching instructor profile...');
+        
+        // Now fetch instructor profile to get the instructor ID
+        try {
+          final profileResponse = await _apiService.getInstructorProfile();
+          
+          print('📦 Profile Response: $profileResponse');
+          
+          if (profileResponse['success'] == true && profileResponse['data'] != null) {
+            final profileData = profileResponse['data'];
+            
+            // Extract instructor ID from profile and convert to String
+            String? instructorId;
+            if (profileData['id'] != null) {
+              instructorId = profileData['id'].toString();
+            } else if (profileData['Id'] != null) {
+              instructorId = profileData['Id'].toString();
+            }
+            
+            if (instructorId != null) {
+              await StorageService.saveInstructorId(instructorId);
+              print('✅ Instructor ID saved: $instructorId');
+            } else {
+              print('⚠️ WARNING: No instructor ID in profile!');
+            }
+          }
+        } catch (profileError) {
+          print('⚠️ Failed to fetch profile: $profileError');
+          // Continue anyway, sections will load via JWT token
+        }
+        
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Login successful!")),
-          );
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const RootScaffold()),
+            MaterialPageRoute(
+              builder: (context) => const DashboardScreen(),
+            ),
           );
         }
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Invalid username or password.")),
-          );
-        }
+        setState(() {
+          _errorMessage = response['message'] as String? ?? 'Login failed';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Unable to connect to server. Please check your internet connection.';
+      });
+      print('Login error: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
@@ -56,235 +113,659 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 60),
-              _buildHeader(),
-              const SizedBox(height: 60),
-              _buildLoginForm(),
-              const SizedBox(height: 40),
-              _buildLoginButton(),
-              const SizedBox(height: 24),
-              _buildAdditionalOptions(),
+      backgroundColor: const Color(0xFF60A5FA),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF1E3A8A),
+              Color(0xFF3B82F6),
+              Color(0xFF60A5FA),
             ],
+          ),
+        ),
+        child: SafeArea(
+          child: ResponsiveWidget(
+            mobile: _buildMobileLayout(context),
+            tablet: _buildTabletLayout(context),
+            desktop: _buildDesktopLayout(context),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildMobileLayout(BuildContext context) {
     return Column(
       children: [
-        Image.asset(
-          'lib/assets/aclc logo.png',
-          width: 160,
-          height: 160,
-          fit: BoxFit.contain,
+        Expanded(
+          flex: 2,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'lib/images/aclc_logo.png',
+                width: ResponsiveUtils.getResponsiveImageSize(
+                  context,
+                  mobile: 200,
+                  tablet: 250,
+                  desktop: 300,
+                ),
+                height: ResponsiveUtils.getResponsiveImageSize(
+                  context,
+                  mobile: 120,
+                  tablet: 150,
+                  desktop: 180,
+                ),
+                fit: BoxFit.contain,
+              ),
+              SizedBox(height: ResponsiveUtils.getResponsiveSpacing(
+                context,
+                mobile: 24,
+                tablet: 32,
+                desktop: 40,
+              )),
+              Text(
+                'Attendance Monitoring',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  fontSize: ResponsiveUtils.getResponsiveFontSize(
+                    context,
+                    mobile: 24,
+                    tablet: 28,
+                    desktop: 32,
+                  ),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 24),
-        const Text(
-          'Teacher Portal',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
+        Expanded(
+          flex: 3,
+          child: Container(
+            margin: ResponsiveUtils.getResponsiveMargin(context),
+            padding: ResponsiveUtils.getResponsivePadding(context),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                      child: Container(
+                        padding: ResponsiveUtils.getResponsivePadding(context),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.2),
+                            width: 1.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 30,
+                              offset: const Offset(0, 15),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              'Sign In',
+                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                fontSize: ResponsiveUtils.getResponsiveFontSize(
+                                  context,
+                                  mobile: 20,
+                                  tablet: 24,
+                                  desktop: 28,
+                                ),
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black.withOpacity(0.3),
+                                    offset: const Offset(0, 2),
+                                    blurRadius: 4,
+                                  ),
+                                ],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: ResponsiveUtils.getResponsiveSpacing(
+                              context,
+                              mobile: 24,
+                              tablet: 32,
+                              desktop: 40,
+                            )),
+                            _buildUsernameField(context),
+                            SizedBox(height: ResponsiveUtils.getResponsiveSpacing(
+                              context,
+                              mobile: 20,
+                              tablet: 24,
+                              desktop: 28,
+                            )),
+                            _buildPasswordField(context),
+                            SizedBox(height: ResponsiveUtils.getResponsiveSpacing(
+                              context,
+                              mobile: 24,
+                              tablet: 32,
+                              desktop: 40,
+                            )),
+                            _buildErrorMessage(context),
+                            _buildLoginButton(context),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildLoginForm() {
-    return Container(
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+  Widget _buildTabletLayout(BuildContext context) {
+    return Row(
+      children: [
+        // Left side - Logo and title
+        Expanded(
+          flex: 1,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'lib/images/aclc_logo.png',
+                width: ResponsiveUtils.getResponsiveImageSize(
+                  context,
+                  mobile: 200,
+                  tablet: 250,
+                  desktop: 300,
+                ),
+                height: ResponsiveUtils.getResponsiveImageSize(
+                  context,
+                  mobile: 120,
+                  tablet: 150,
+                  desktop: 180,
+                ),
+                fit: BoxFit.contain,
+              ),
+              SizedBox(height: ResponsiveUtils.getResponsiveSpacing(
+                context,
+                mobile: 24,
+                tablet: 32,
+                desktop: 40,
+              )),
+              Text(
+                'Attendance Monitoring',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  fontSize: ResponsiveUtils.getResponsiveFontSize(
+                    context,
+                    mobile: 24,
+                    tablet: 28,
+                    desktop: 32,
+                  ),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        ),
+        // Right side - Login form
+        Expanded(
+          flex: 1,
+          child: Container(
+            margin: ResponsiveUtils.getResponsiveMargin(context),
+            padding: ResponsiveUtils.getResponsivePadding(context),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                      child: Container(
+                        padding: ResponsiveUtils.getResponsivePadding(context),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.2),
+                            width: 1.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 30,
+                              offset: const Offset(0, 15),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              'Sign In',
+                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                fontSize: ResponsiveUtils.getResponsiveFontSize(
+                                  context,
+                                  mobile: 20,
+                                  tablet: 24,
+                                  desktop: 28,
+                                ),
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black.withOpacity(0.3),
+                                    offset: const Offset(0, 2),
+                                    blurRadius: 4,
+                                  ),
+                                ],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: ResponsiveUtils.getResponsiveSpacing(
+                              context,
+                              mobile: 24,
+                              tablet: 32,
+                              desktop: 40,
+                            )),
+                            _buildUsernameField(context),
+                            SizedBox(height: ResponsiveUtils.getResponsiveSpacing(
+                              context,
+                              mobile: 20,
+                              tablet: 24,
+                              desktop: 28,
+                            )),
+                            _buildPasswordField(context),
+                            SizedBox(height: ResponsiveUtils.getResponsiveSpacing(
+                              context,
+                              mobile: 24,
+                              tablet: 32,
+                              desktop: 40,
+                            )),
+                            _buildErrorMessage(context),
+                            _buildLoginButton(context),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopLayout(BuildContext context) {
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: Row(
           children: [
-            _buildIdentifierField(),
-            const SizedBox(height: 24),
-            _buildPasswordField(),
+            // Left side - Logo and title
+            Expanded(
+              flex: 1,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    'lib/images/aclc_logo.png',
+                    width: ResponsiveUtils.getResponsiveImageSize(
+                      context,
+                      mobile: 200,
+                      tablet: 250,
+                      desktop: 300,
+                    ),
+                    height: ResponsiveUtils.getResponsiveImageSize(
+                      context,
+                      mobile: 120,
+                      tablet: 150,
+                      desktop: 180,
+                    ),
+                    fit: BoxFit.contain,
+                  ),
+                  SizedBox(height: ResponsiveUtils.getResponsiveSpacing(
+                    context,
+                    mobile: 24,
+                    tablet: 32,
+                    desktop: 40,
+                  )),
+                  Text(
+                    'Attendance Monitoring',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontSize: ResponsiveUtils.getResponsiveFontSize(
+                        context,
+                        mobile: 24,
+                        tablet: 28,
+                        desktop: 32,
+                      ),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+            // Right side - Login form
+            Expanded(
+              flex: 1,
+              child: Container(
+                margin: ResponsiveUtils.getResponsiveMargin(context),
+                padding: ResponsiveUtils.getResponsivePadding(context),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                          child: Container(
+                            padding: ResponsiveUtils.getResponsivePadding(context),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.2),
+                                width: 1.5,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 30,
+                                  offset: const Offset(0, 15),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Text(
+                                  'Sign In',
+                                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    fontSize: ResponsiveUtils.getResponsiveFontSize(
+                                      context,
+                                      mobile: 20,
+                                      tablet: 24,
+                                      desktop: 28,
+                                    ),
+                                    shadows: [
+                                      Shadow(
+                                        color: Colors.black.withOpacity(0.3),
+                                        offset: const Offset(0, 2),
+                                        blurRadius: 4,
+                                      ),
+                                    ],
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                SizedBox(height: ResponsiveUtils.getResponsiveSpacing(
+                                  context,
+                                  mobile: 24,
+                                  tablet: 32,
+                                  desktop: 40,
+                                )),
+                                _buildUsernameField(context),
+                                SizedBox(height: ResponsiveUtils.getResponsiveSpacing(
+                                  context,
+                                  mobile: 20,
+                                  tablet: 24,
+                                  desktop: 28,
+                                )),
+                                _buildPasswordField(context),
+                                SizedBox(height: ResponsiveUtils.getResponsiveSpacing(
+                                  context,
+                                  mobile: 24,
+                                  tablet: 32,
+                                  desktop: 40,
+                                )),
+                                _buildErrorMessage(context),
+                                _buildLoginButton(context),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildIdentifierField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Username or Email',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
+  Widget _buildUsernameField(BuildContext context) {
+    return TextFormField(
+      controller: _usernameController,
+      keyboardType: TextInputType.text,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        labelText: 'Username or Email',
+        labelStyle: TextStyle(color: Colors.white.withOpacity(0.8)),
+        hintText: 'Enter your username or email',
+        hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+        prefixIcon: const Icon(Icons.person_outline, color: Colors.white),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
         ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: _identifierController,
-          decoration: InputDecoration(
-            hintText: 'Enter your username or email',
-            prefixIcon: Icon(Icons.person_outline, color: Colors.grey[400]),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.blue[600]!, width: 2),
-            ),
-            filled: true,
-            fillColor: Colors.grey[50],
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter your username or email';
-            }
-            return null;
-          },
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
         ),
-      ],
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.6), width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide(color: Colors.red.withOpacity(0.6)),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide(color: Colors.red.withOpacity(0.8), width: 2),
+        ),
+        filled: true,
+        fillColor: Colors.white.withOpacity(0.1),
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: ResponsiveUtils.getResponsiveSpacing(context, mobile: 16, tablet: 20, desktop: 24),
+          vertical: ResponsiveUtils.getResponsiveSpacing(context, mobile: 12, tablet: 16, desktop: 20),
+        ),
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Please enter your username or email';
+        }
+        return null;
+      },
     );
   }
 
-  Widget _buildPasswordField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Password',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
+  Widget _buildPasswordField(BuildContext context) {
+    return TextFormField(
+      controller: _passwordController,
+      obscureText: _obscurePassword,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        labelText: 'Password',
+        labelStyle: TextStyle(color: Colors.white.withOpacity(0.8)),
+        hintText: 'Enter your password',
+        hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+        prefixIcon: const Icon(Icons.lock_outlined, color: Colors.white),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+            color: Colors.white,
           ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: _passwordController,
-          obscureText: _obscurePassword,
-          decoration: InputDecoration(
-            hintText: 'Enter your password',
-            prefixIcon: Icon(Icons.lock_outline, color: Colors.grey[400]),
-            suffixIcon: IconButton(
-              icon: Icon(
-                _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                color: Colors.grey[400],
-              ),
-              onPressed: () {
-                setState(() => _obscurePassword = !_obscurePassword);
-              },
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.blue[600]!, width: 2),
-            ),
-            filled: true,
-            fillColor: Colors.grey[50],
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter your password';
-            }
-            if (value.length < 8) {
-              return 'Password must be at least 8 characters';
-            }
-            return null;
+          onPressed: () {
+            setState(() {
+              _obscurePassword = !_obscurePassword;
+            });
           },
         ),
-      ],
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.6), width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide(color: Colors.red.withOpacity(0.6)),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide(color: Colors.red.withOpacity(0.8), width: 2),
+        ),
+        filled: true,
+        fillColor: Colors.white.withOpacity(0.1),
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: ResponsiveUtils.getResponsiveSpacing(context, mobile: 16, tablet: 20, desktop: 24),
+          vertical: ResponsiveUtils.getResponsiveSpacing(context, mobile: 12, tablet: 16, desktop: 20),
+        ),
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Please enter your password';
+        }
+        if (value.length < 6) {
+          return 'Password must be at least 6 characters';
+        }
+        return null;
+      },
     );
   }
 
-  Widget _buildLoginButton() {
-    return SizedBox(
-      height: 56,
-      child: ElevatedButton(
-        onPressed: _isLoading ? null : _handleLogin,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue[600],
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: _isLoading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-            : const Text(
-                'Sign In',
+  Widget _buildErrorMessage(BuildContext context) {
+    if (_errorMessage == null) return const SizedBox.shrink();
+    
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: ResponsiveUtils.getResponsiveSpacing(context, mobile: 100, tablet: 120, desktop: 150),
+      ),
+      padding: ResponsiveUtils.getResponsivePadding(context),
+      margin: EdgeInsets.only(bottom: ResponsiveUtils.getResponsiveSpacing(context, mobile: 16, tablet: 20, desktop: 24)),
+      decoration: BoxDecoration(
+        color: Colors.red.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.red.withOpacity(0.4)),
+      ),
+      child: SingleChildScrollView(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.error_outline, color: Colors.red[300], size: 20),
+            SizedBox(width: ResponsiveUtils.getResponsiveSpacing(context, mobile: 8, tablet: 12, desktop: 16)),
+            Flexible(
+              child: Text(
+                _errorMessage!,
                 style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  color: Colors.red[200], 
+                  fontWeight: FontWeight.w500,
+                  fontSize: ResponsiveUtils.getResponsiveFontSize(context, mobile: 12, tablet: 14, desktop: 16),
                 ),
+                softWrap: true,
+                overflow: TextOverflow.visible,
               ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildAdditionalOptions() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          'Need help? ',
-          style: TextStyle(color: Colors.grey[600], fontSize: 14),
-        ),
-        GestureDetector(
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Contact support coming soon!')),
-            );
-          },
-          child: Text(
-            'Contact Support',
-            style: TextStyle(
-              color: Colors.blue[600],
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+  Widget _buildLoginButton(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(15),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+        child: Container(
+          height: ResponsiveUtils.getResponsiveSpacing(context, mobile: 48, tablet: 56, desktop: 64),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.white.withOpacity(0.2),
+                Colors.white.withOpacity(0.1),
+              ],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
             ),
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.3),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : _handleLogin,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+            ),
+            child: _isLoading
+                ? SizedBox(
+                    height: ResponsiveUtils.getResponsiveSpacing(context, mobile: 20, tablet: 24, desktop: 28),
+                    width: ResponsiveUtils.getResponsiveSpacing(context, mobile: 20, tablet: 24, desktop: 28),
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Text(
+                    'Sign In',
+                    style: TextStyle(
+                      fontSize: ResponsiveUtils.getResponsiveFontSize(context, mobile: 16, tablet: 18, desktop: 20),
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
           ),
         ),
-      ],
+      ),
     );
   }
 }

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../models/attendance.dart';
-import '../services/attendance_service.dart';
-import '../services/notification_service.dart';
+import 'dashboard_screen.dart';
+import 'profile_screen.dart';
+import 'qr_screen.dart';
+import 'sections_screen.dart';
 
 class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({super.key});
@@ -11,349 +12,421 @@ class AttendanceScreen extends StatefulWidget {
 }
 
 class _AttendanceScreenState extends State<AttendanceScreen> {
-  final List<AttendanceRecord> _records = [];
-  bool _isLoading = false;
+  String selectedSort = 'all'; // Default: show all students
+  bool showSortMenu = false;
+  bool isHovering = false;
+  List<StudentAttendance> attendanceList = [
+    StudentAttendance(name: 'John Doe', studentId: '2024-001', status: 'present', time: '08:30 AM'),
+    StudentAttendance(name: 'Jane Smith', studentId: '2024-002', status: 'late', time: '09:15 AM'),
+    StudentAttendance(name: 'Mike Johnson', studentId: '2024-003', status: 'absent', time: '--'),
+    StudentAttendance(name: 'Sarah Wilson', studentId: '2024-004', status: 'present', time: '08:35 AM'),
+    StudentAttendance(name: 'David Brown', studentId: '2024-005', status: 'late', time: '09:20 AM'),
+    StudentAttendance(name: 'Emily Davis', studentId: '2024-006', status: 'absent', time: '--'),
+    StudentAttendance(name: 'Chris Miller', studentId: '2024-007', status: 'present', time: '08:40 AM'),
+    StudentAttendance(name: 'Lisa Garcia', studentId: '2024-008', status: 'present', time: '08:25 AM'),
+    StudentAttendance(name: 'Tom Anderson', studentId: '2024-009', status: 'absent', time: '--'),
+    StudentAttendance(name: 'Amy Taylor', studentId: '2024-010', status: 'late', time: '09:10 AM'),
+    StudentAttendance(name: 'Ryan Lee', studentId: '2024-011', status: 'present', time: '08:45 AM'),
+    StudentAttendance(name: 'Maya Patel', studentId: '2024-012', status: 'late', time: '09:05 AM'),
+  ];
 
-  Future<void> _importCSV() async {
-    setState(() {
-      _isLoading = true;
-    });
-    try {
-      final imported = await AttendanceService.importFromCSV();
-      if (imported.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No file selected or file empty.')),
-          );
-        }
-        return;
-      }
-      setState(() {
-        _records
-          ..clear()
-          ..addAll(imported);
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Imported ${imported.length} records.')),
-        );
-        // Show notification
-        await NotificationService.showImportComplete(imported.length);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to import CSV: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+  int get presentCount => attendanceList.where((s) => s.status == 'present').length;
+  int get absentCount => attendanceList.where((s) => s.status == 'absent').length;
+  int get lateCount => attendanceList.where((s) => s.status == 'late').length;
+
+  List<StudentAttendance> get filteredAttendanceList {
+    if (selectedSort == 'all') {
+      return attendanceList;
+    } else {
+      return attendanceList.where((student) => student.status == selectedSort).toList();
     }
   }
 
-  Future<void> _exportCSV() async {
-    if (_records.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No records to export.')),
-      );
-      return;
-    }
+  void selectSort(String status) {
     setState(() {
-      _isLoading = true;
+      selectedSort = status;
+      showSortMenu = false;
     });
-    final path = await AttendanceService.exportToCSV(_records);
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-      if (path != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Exported to $path')),
-        );
-        // Show notification
-        await NotificationService.showExportComplete('attendance.csv');
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Export failed.')),
-        );
-      }
-    }
-  }
-
-  Future<void> _downloadTemplate() async {
-    setState(() {
-      _isLoading = true;
-    });
-    final path = await AttendanceService.saveSampleCSV();
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-      if (path != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Template saved to $path')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save template.')),
-        );
-      }
-    }
-  }
-
-  Future<void> _loadSample() async {
-    setState(() {
-      _records
-        ..clear()
-        ..addAll(AttendanceService.sampleRecords());
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Loaded sample students.')),
-    );
-  }
-
-  Future<void> _requestNotificationPermission() async {
-    final granted = await NotificationService.requestPermissions();
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(granted 
-            ? 'Notification permission granted!' 
-            : 'Notification permission denied.'),
-        ),
-      );
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Attendance'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: _requestNotificationPermission,
-            tooltip: 'Request notification permission',
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF1E3A8A), // Deep blue
+              Color(0xFF3B82F6), // Blue
+              Color(0xFF60A5FA), // Light blue
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.schedule),
-            onPressed: () async {
-              await NotificationService.scheduleDailyReminder();
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Daily reminder scheduled!')),
-                );
-              }
-            },
-            tooltip: 'Schedule daily reminder',
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isLoading ? null : _importCSV,
-                    icon: const Icon(Icons.file_upload_outlined),
-                    label: const Text('Import CSV'),
-                  ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    // ACLC Logo
+                    Image.asset(
+                'lib/images/aclc_logo.png',
+                      width: 50,
+                      height: 50,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(width: 12),
+                    // Attendance Title
+                    Expanded(
+                      child: Text(
+                        'Attendance',
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 24,
+                        ),
+                      ),
+                    ),
+                    // Notification Bell
+                    const Icon(
+                      Icons.notifications_outlined,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isLoading ? null : _exportCSV,
-                    icon: const Icon(Icons.file_download_outlined),
-                    label: const Text('Export CSV'),
+              ),
+              
+              // Main Content
+              Expanded(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(25),
+                      topRight: Radius.circular(25),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isLoading ? null : _loadSample,
-                    icon: const Icon(Icons.auto_awesome),
-                    label: const Text('Load Sample'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _isLoading ? null : _downloadTemplate,
-                    icon: const Icon(Icons.description_outlined),
-                    label: const Text('Download Template'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _isLoading
-                        ? null
-                        : () {
-                            setState(() {
-                              _records.clear();
-                            });
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Status Cards
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildStatusCard(
+                                'Present',
+                                presentCount.toString(),
+                                Icons.check_circle,
+                                const Color(0xFF10B981),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildStatusCard(
+                                'Late',
+                                lateCount.toString(),
+                                Icons.schedule,
+                                const Color(0xFFF59E0B),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildStatusCard(
+                                'Absent',
+                                absentCount.toString(),
+                                Icons.cancel,
+                                const Color(0xFFEF4444),
+                              ),
+                            ),
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 24),
+                        
+                        // Sort Section
+                        Row(
+                          children: [
+                            Text(
+                              'Attendance List',
+                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF1E3A8A),
+                                fontSize: 20,
+                              ),
+                            ),
+                            const Spacer(),
+                            IconButton(
+                              onPressed: _showSortSheet,
+                              icon: const Icon(
+                                Icons.sort,
+                                color: Color(0xFF1E3A8A),
+                                size: 24,
+                              ),
+                              splashRadius: 22,
+                            ),
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 20),
+                        
+                        // Attendance List
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: filteredAttendanceList.length,
+                          itemBuilder: (context, index) {
+                            final student = filteredAttendanceList[index];
+                            return _buildStudentCard(student);
                           },
-                    icon: const Icon(Icons.clear_all),
-                    label: const Text('Clear List'),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _records.isEmpty
-                    ? const _EmptyState()
-                    : _GroupedByStudentList(records: _records),
-          ),
-        ],
+        ),
       ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.assignment_outlined,
-              size: 56,
-              color: Colors.grey[400],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
             ),
-            const SizedBox(height: 12),
-            Text(
-              'No attendance records',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
-              ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          backgroundColor: Colors.white,
+          selectedItemColor: const Color(0xFF1E3A8A),
+          unselectedItemColor: Colors.grey,
+          type: BottomNavigationBarType.fixed,
+          currentIndex: 1, // Attendance tab selected
+          onTap: (index) {
+            if (index == 0) {
+              Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => const DashboardScreen()));
+            } else if (index == 2) {
+              Navigator.of(context).push(MaterialPageRoute(builder: (context) => QrScreen()));
+            } else if (index == 3) {
+              Navigator.of(context).push(MaterialPageRoute(builder: (context) => const SectionsScreen()));
+            } else if (index == 4) {
+              Navigator.of(context).push(MaterialPageRoute(builder: (context) => const ProfileScreen()));
+            }
+          },
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home),
+              label: 'Home',
             ),
-            const SizedBox(height: 6),
-            Text(
-              'Import a CSV file or download a template to get started.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.grey[600],
-              ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.assignment),
+              label: 'Attendance',
             ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.qr_code),
+              label: 'QR',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.groups),
+              label: 'Sections',
+            ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person),
+          label: 'Profile',
+        ),
           ],
         ),
       ),
     );
   }
-}
 
-class _GroupedByStudentList extends StatelessWidget {
-  final List<AttendanceRecord> records;
-
-  const _GroupedByStudentList({required this.records});
-
-  @override
-  Widget build(BuildContext context) {
-    final Map<String, List<AttendanceRecord>> byStudent = {};
-    for (final r in records) {
-      byStudent.putIfAbsent('${r.studentName}__${r.studentId}', () => []).add(r);
-    }
-
-    final entries = byStudent.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
-
-    return ListView.builder(
-      itemCount: entries.length,
-      itemBuilder: (context, index) {
-        final key = entries[index].key;
-        final parts = key.split('__');
-        final name = parts.first;
-        final id = parts.last;
-        final studentRecords = entries[index].value
-          ..sort((a, b) => a.date.compareTo(b.date));
-
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      CircleAvatar(child: Text(name.isNotEmpty ? name[0] : '?')),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              name,
-                              style: const TextStyle(fontWeight: FontWeight.w700),
-                            ),
-                            Text(
-                              id,
-                              style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(Icons.check_circle, color: Color(0xFF1565C0))
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  const Divider(height: 1),
-                  const SizedBox(height: 8),
-                  ...studentRecords.map((r) => Container(
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1F6FE),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          leading: const Icon(Icons.calendar_today, size: 18, color: Color(0xFF1565C0)),
-                          title: Text(_formatDate(r.date)),
-                          subtitle: Text('Arrival ${r.timeIn.isEmpty ? '-' : r.timeIn}   •   Departure ${r.timeOut.isEmpty ? '-' : r.timeOut}'),
-                          trailing: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: _statusColor(r.status, context).withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              r.status,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: _statusColor(r.status, context),
-                              ),
-                            ),
-                          ),
-                        ),
-                      )),
-                ],
+  Widget _buildStatusCard(String title, String count, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            color.withOpacity(0.1),
+            color.withOpacity(0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: color.withOpacity(0.3),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.2),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Center(
+            child: Text(
+              count,
+              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: color,
+                fontSize: 32,
               ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Center(
+            child: Text(
+              title,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStudentCard(StudentAttendance student) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _getStatusColor(student.status).withOpacity(0.2),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Status Icon
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: _getStatusColor(student.status).withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              _getStatusIcon(student.status),
+              color: _getStatusColor(student.status),
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          
+          // Student Info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  student.name,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  student.studentId,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Time/Status
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                student.time,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w500,
+                  color: _getStatusColor(student.status),
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _getStatusColor(student.status).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  student.status.toUpperCase(),
+                  style: TextStyle(
+                    color: _getStatusColor(student.status),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSortSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Sort by',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF1E3A8A),
+                      ),
+                ),
+                const SizedBox(height: 12),
+                _buildSheetOption('All students', 'all', Icons.people_alt),
+                _buildSheetOption('Present', 'present', Icons.check_circle),
+                _buildSheetOption('Late', 'late', Icons.schedule),
+                _buildSheetOption('Absent', 'absent', Icons.cancel),
+              ],
             ),
           ),
         );
@@ -361,22 +434,66 @@ class _GroupedByStudentList extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime d) {
-    final mm = d.month.toString().padLeft(2, '0');
-    final dd = d.day.toString().padLeft(2, '0');
-    return '${d.year}-$mm-$dd';
+  Widget _buildSheetOption(String label, String value, IconData icon) {
+    final bool active = selectedSort == value;
+    return ListTile(
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(icon, color: active ? const Color(0xFF1E3A8A) : Colors.grey[600]),
+      title: Text(
+        label,
+        style: TextStyle(
+          color: active ? const Color(0xFF1E3A8A) : Colors.black,
+          fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+        ),
+      ),
+      trailing: active
+          ? const Icon(Icons.check, color: Color(0xFF1E3A8A))
+          : const SizedBox.shrink(),
+      onTap: () {
+        selectSort(value);
+        Navigator.pop(context);
+      },
+    );
   }
 
-  Color _statusColor(String status, BuildContext context) {
-    switch (status.toLowerCase()) {
+  Color _getStatusColor(String status) {
+    switch (status) {
       case 'present':
-        return Colors.green[700]!;
+        return const Color(0xFF10B981);
       case 'late':
-        return Colors.orange[700]!;
+        return const Color(0xFFF59E0B);
       case 'absent':
-        return Colors.red[700]!;
+        return const Color(0xFFEF4444);
       default:
-        return Theme.of(context).colorScheme.primary;
+        return Colors.grey;
     }
   }
+
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case 'present':
+        return Icons.check_circle;
+      case 'late':
+        return Icons.schedule;
+      case 'absent':
+        return Icons.cancel;
+      default:
+        return Icons.help;
+    }
+  }
+}
+
+class StudentAttendance {
+  final String name;
+  final String studentId;
+  final String status;
+  final String time;
+
+  StudentAttendance({
+    required this.name,
+    required this.studentId,
+    required this.status,
+    required this.time,
+  });
 }
