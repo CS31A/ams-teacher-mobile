@@ -393,22 +393,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   height: 50,
                 ),
               ),
-              const SizedBox(height: 20),
-              
-              // Success icon
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade400,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.check_rounded,
-                  color: Colors.white,
-                  size: 40,
-                ),
-              ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               
               // Title
               const Text(
@@ -890,7 +875,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF1E3A8A).withOpacity(0.4),
@@ -899,20 +884,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ],
       ),
-      child: Column(
+      child: Stack(
         children: [
-          // Avatar with edit button
-          Stack(
-            alignment: Alignment.center,
+          Column(
             children: [
+              // Avatar
               Container(
-                width: 100,
-                height: 100,
+                width: 110,
+                height: 110,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.3),
+                    color: Colors.white.withOpacity(0.5),
                     width: 4,
                   ),
                   boxShadow: [
@@ -927,96 +911,98 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Text(
                     initial,
                     style: const TextStyle(
-                      fontSize: 42,
+                      fontSize: 48,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF1E3A8A),
                     ),
                   ),
                 ),
               ),
-              // Edit pencil icon on avatar (no circle background)
-              Positioned(
-                bottom: 2,
-                right: 2,
-                child: GestureDetector(
-                  onTap: _openEditModal,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    child: const Icon(
-                      Icons.edit_rounded,
-                      size: 22,
-                      color: Color(0xFF1E3A8A),
-                      shadows: [
-                        Shadow(
-                          color: Colors.white,
-                          blurRadius: 4,
-                          offset: Offset(0, 0),
-                        ),
-                        Shadow(
-                          color: Colors.white,
-                          blurRadius: 8,
-                          offset: Offset(0, 0),
-                        ),
-                      ],
-                    ),
-                  ),
+              const SizedBox(height: 20),
+              
+              // Name
+              Text(
+                _profile?.fullName ?? 'Instructor',
+                style: const TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 0.5,
                 ),
+                textAlign: TextAlign.center,
               ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          
-          // Name
-          Text(
-            _profile?.fullName ?? 'Instructor',
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 10),
-          
-          // Email
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.email_rounded,
-                size: 16,
-                color: Colors.white70,
-              ),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  _profile?.email ?? '',
-                  style: const TextStyle(
-                    fontSize: 15,
+              const SizedBox(height: 12),
+              
+              // Email
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.email_rounded,
+                    size: 18,
                     color: Colors.white70,
                   ),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      _profile?.email ?? '',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: Colors.white70,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              
+              // Role badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.3),
+                    width: 1.5,
+                  ),
+                ),
+                child: const Text(
+                  'Teacher',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
           
-          // Role badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Text(
-              'Teacher',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
+          // Edit pencil icon - top right (no background)
+          Positioned(
+            top: 0,
+            right: 0,
+            child: GestureDetector(
+              onTap: _openEditModal,
+              child: const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Icon(
+                  Icons.edit,
+                  size: 24,
+                  color: Colors.white,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black26,
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
