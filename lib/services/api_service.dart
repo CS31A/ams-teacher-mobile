@@ -13,16 +13,6 @@ class ApiService {
   
   ApiService._internal();
   
-  // Helper method to get auth headers
-  Future<Map<String, String>> _getAuthHeaders() async {
-    final token = await StorageService.getToken();
-    return {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      if (token != null) 'Authorization': 'Bearer $token',
-    };
-  }
-  
   // ==================== AUTH METHODS ====================
   
   Future<Map<String, dynamic>> login(String username, String password) async {
@@ -179,6 +169,83 @@ class ApiService {
       }
     } catch (e) {
       print('💥 Error in getInstructorProfile: $e');
+      return {
+        'success': false,
+        'error': 'Error: $e',
+      };
+    }
+  }
+
+  /// Update instructor profile
+  Future<Map<String, dynamic>> updateInstructorProfile({
+    required int instructorId,
+    String? email,
+    String? firstname,
+    String? lastname,
+  }) async {
+    try {
+      final token = await StorageService.getToken();
+      
+      if (token == null) {
+        return {
+          'success': false,
+          'error': 'Not authenticated.',
+        };
+      }
+
+      final url = '${ApiConstants.baseUrl}/api/instructors/$instructorId';
+      print('🌐 Updating instructor profile at: $url');
+      
+      // Build update body - only include non-null fields
+      final Map<String, dynamic> updateData = {};
+      if (email != null) updateData['email'] = email;
+      if (firstname != null) updateData['firstname'] = firstname;
+      if (lastname != null) updateData['lastname'] = lastname;
+      
+      print('📝 Update data: $updateData');
+
+      final response = await http.patch(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: json.encode(updateData),
+      ).timeout(
+        ApiConstants.connectionTimeout,
+        onTimeout: () => throw Exception('Connection timeout'),
+      );
+
+      print('📊 Update Response Status: ${response.statusCode}');
+      print('📝 Update Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'message': 'Profile updated successfully',
+          'data': data,
+        };
+      } else if (response.statusCode == 400) {
+        final errorData = json.decode(response.body);
+        return {
+          'success': false,
+          'error': errorData['message'] ?? 'Invalid data',
+        };
+      } else if (response.statusCode == 404) {
+        return {
+          'success': false,
+          'error': 'Instructor not found',
+        };
+      } else {
+        return {
+          'success': false,
+          'error': 'Failed to update profile: ${response.statusCode}',
+        };
+      }
+    } catch (e) {
+      print('💥 Error in updateInstructorProfile: $e');
       return {
         'success': false,
         'error': 'Error: $e',

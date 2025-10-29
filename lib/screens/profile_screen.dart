@@ -15,7 +15,8 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _firstnameController = TextEditingController();
+  final TextEditingController _lastnameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final ApiService _apiService = ApiService();
 
@@ -43,9 +44,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final profile = InstructorProfile.fromJson(response['data']);
         setState(() {
           _profile = profile;
+          _firstnameController.text = profile.firstname ?? '';
+          _lastnameController.text = profile.lastname ?? '';
           _emailController.text = profile.email;
-          // Use email as username for now since backend doesn't return a username field
-          _usernameController.text = 'Instructor ${profile.id}';
           _isLoading = false;
         });
       } else {
@@ -64,7 +65,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _firstnameController.dispose();
+    _lastnameController.dispose();
     _emailController.dispose();
     super.dispose();
   }
@@ -123,13 +125,66 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    
+    if (_profile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profile not loaded'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
     setState(() => _isSaving = true);
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (!mounted) return;
-    setState(() => _isSaving = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile updated')),
-    );
+
+    try {
+      // Call the API to update the profile
+      final response = await _apiService.updateInstructorProfile(
+        instructorId: _profile!.id,
+        email: _emailController.text.trim(),
+        firstname: _firstnameController.text.trim().isEmpty ? null : _firstnameController.text.trim(),
+        lastname: _lastnameController.text.trim().isEmpty ? null : _lastnameController.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      if (response['success'] == true) {
+        // Reload the profile to get updated data
+        await _loadProfile();
+        
+        // Close the modal
+        Navigator.pop(context);
+        
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Profile updated successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response['error'] ?? 'Failed to update profile'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
   }
 
   void _openEditModal() {
@@ -183,12 +238,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                         ),
                         const SizedBox(height: 20),
-                        Text('Username', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600, color: const Color(0xFF1E3A8A))),
+                        Text('First Name', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600, color: const Color(0xFF1E3A8A))),
                         const SizedBox(height: 8),
                         TextFormField(
-                          controller: _usernameController,
+                          controller: _firstnameController,
                           decoration: InputDecoration(
-                            hintText: 'Enter your username',
+                            hintText: 'Enter your first name',
                             prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF1E3A8A)),
                             filled: true,
                             fillColor: Colors.white,
@@ -196,7 +251,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF1E3A8A), width: 2)),
                           ),
-                          validator: (v) => (v == null || v.trim().isEmpty) ? 'Username is required' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        Text('Last Name', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600, color: const Color(0xFF1E3A8A))),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _lastnameController,
+                          decoration: InputDecoration(
+                            hintText: 'Enter your last name',
+                            prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF1E3A8A)),
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF1E3A8A), width: 2)),
+                          ),
                         ),
                         const SizedBox(height: 16),
                         Text('Email Address', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600, color: const Color(0xFF1E3A8A))),
@@ -363,13 +432,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                _usernameController.text,
+                                                _profile?.fullName ?? 'Loading...',
                                                 overflow: TextOverflow.ellipsis,
                                                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.black),
                                               ),
                                               const SizedBox(height: 2),
                                               Text(
-                                                _emailController.text,
+                                                _profile?.email ?? '',
                                                 overflow: TextOverflow.ellipsis,
                                                 style: TextStyle(color: Colors.grey[600], fontSize: 12),
                                               ),
@@ -388,6 +457,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     Text('Profile Information', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: const Color(0xFF1E3A8A), fontSize: 20)),
                                     const SizedBox(height: 10),
                                     _buildInfoCard('ID', _profile?.id.toString() ?? 'N/A'),
+                                    const SizedBox(height: 10),
+                                    _buildInfoCard('First Name', _profile?.firstname ?? 'Not set'),
+                                    const SizedBox(height: 10),
+                                    _buildInfoCard('Last Name', _profile?.lastname ?? 'Not set'),
                                     const SizedBox(height: 10),
                                     _buildInfoCard('Email', _profile?.email ?? 'N/A'),
                                     const SizedBox(height: 10),
