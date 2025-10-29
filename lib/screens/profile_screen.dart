@@ -593,6 +593,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       controller: _firstnameController,
                       label: 'First Name',
                       hint: 'Enter your first name',
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'First name is required';
+                        }
+                        // Only allow letters and spaces
+                        final nameRegex = RegExp(r'^[a-zA-Z\s]+$');
+                        if (!nameRegex.hasMatch(v)) {
+                          return 'Only letters are allowed';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 20),
                     
@@ -600,6 +611,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       controller: _lastnameController,
                       label: 'Last Name',
                       hint: 'Enter your last name',
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Last name is required';
+                        }
+                        // Only allow letters and spaces
+                        final nameRegex = RegExp(r'^[a-zA-Z\s]+$');
+                        if (!nameRegex.hasMatch(v)) {
+                          return 'Only letters are allowed';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 20),
                     
@@ -714,6 +736,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: const BorderSide(color: Color(0xFF1E3A8A), width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Colors.red, width: 1.5),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Colors.red, width: 2),
+            ),
+            errorStyle: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           ),
