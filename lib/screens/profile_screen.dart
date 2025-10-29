@@ -3,6 +3,8 @@ import 'attendance_screen.dart';
 import 'dashboard_screen.dart';
 import 'qr_screen.dart';
 import 'sections_screen.dart';
+import '../services/api_service.dart';
+import '../models/instructor_profile_model.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -13,16 +15,110 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _usernameController = TextEditingController(text: 'Christian Dave Sayson');
-  final TextEditingController _emailController = TextEditingController(text: 'teacher@example.com');
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final ApiService _apiService = ApiService();
 
   bool _isSaving = false;
+  bool _isLoading = true;
+  InstructorProfile? _profile;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final response = await _apiService.getInstructorProfile();
+      
+      if (response['success'] == true && response['data'] != null) {
+        final profile = InstructorProfile.fromJson(response['data']);
+        setState(() {
+          _profile = profile;
+          _emailController.text = profile.email;
+          // Use email as username for now since backend doesn't return a username field
+          _usernameController.text = 'Instructor ${profile.id}';
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = response['error'] ?? 'Failed to load profile';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error: $e';
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
     _usernameController.dispose();
     _emailController.dispose();
     super.dispose();
+  }
+
+  String _formatDate(String? dateString) {
+    if (dateString == null || dateString.isEmpty) return 'N/A';
+    try {
+      // Parse the date string - assuming format like "2025-10-19T03:40.143832"
+      final date = DateTime.parse(dateString.replaceAll('.', ':'));
+      return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return dateString;
+    }
+  }
+
+  Widget _buildInfoCard(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1E3A8A),
+            ),
+          ),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[700],
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _save() async {
@@ -201,66 +297,107 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   borderRadius: const BorderRadius.only(topLeft: Radius.circular(25), topRight: Radius.circular(25)),
                   child: Container(
                     color: const Color(0xFFF8FAFC),
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // Polished profile card
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              // Avatar (no container background)
-                              Container(
-                                width: 56,
-                                height: 56,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Color(0xFF3B4FA1),
+                    child: _isLoading
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1E3A8A)),
+                            ),
+                          )
+                        : _errorMessage != null
+                            ? Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(20),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        Icons.error_outline,
+                                        size: 60,
+                                        color: Colors.red,
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        _errorMessage!,
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.red,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 24),
+                                      ElevatedButton(
+                                        onPressed: _loadProfile,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF1E3A8A),
+                                          foregroundColor: Colors.white,
+                                        ),
+                                        child: const Text('Retry'),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                child: const Icon(Icons.person, color: Colors.white, size: 28),
-                              ),
-                              const SizedBox(width: 12),
-                              // Name + email
-                              Expanded(
+                              )
+                            : SingleChildScrollView(
+                                padding: const EdgeInsets.all(20),
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
-                                    Text(
-                                      _usernameController.text,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.black),
+                                    // Polished profile card
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        // Avatar (no container background)
+                                        Container(
+                                          width: 56,
+                                          height: 56,
+                                          decoration: const BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Color(0xFF3B4FA1),
+                                          ),
+                                          child: const Icon(Icons.person, color: Colors.white, size: 28),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        // Name + email
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                _usernameController.text,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.black),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                _emailController.text,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        IconButton(
+                                          onPressed: _openEditModal,
+                                          icon: const Icon(Icons.edit, color: Color(0xFF1E3A8A), size: 20),
+                                          splashRadius: 18,
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      _emailController.text,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                                    ),
+
+                                    const SizedBox(height: 24),
+                                    Text('Profile Information', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: const Color(0xFF1E3A8A), fontSize: 20)),
+                                    const SizedBox(height: 10),
+                                    _buildInfoCard('ID', _profile?.id.toString() ?? 'N/A'),
+                                    const SizedBox(height: 10),
+                                    _buildInfoCard('Email', _profile?.email ?? 'N/A'),
+                                    const SizedBox(height: 10),
+                                    _buildInfoCard('Created At', _formatDate(_profile?.createdAt)),
+                                    const SizedBox(height: 10),
+                                    _buildInfoCard('Updated At', _formatDate(_profile?.updatedAt)),
+                                    const SizedBox(height: 24),
                                   ],
                                 ),
                               ),
-                              IconButton(
-                                onPressed: _openEditModal,
-                                icon: const Icon(Icons.edit, color: Color(0xFF1E3A8A), size: 20),
-                                splashRadius: 18,
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 24),
-                          Text('Current Class', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: const Color(0xFF1E3A8A), fontSize: 20)),
-                          const SizedBox(height: 10),
-                          _ProfileClassCard(title: 'Mathematics 101', subtitle: 'Room 305 • 10:30 AM', date: 'Monday, June 10, 2024', countdown: '01:29:11', isCurrent: true),
-
-                          const SizedBox(height: 18),
-                          Text('Next Class', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: const Color(0xFF1E3A8A), fontSize: 20)),
-                          const SizedBox(height: 10),
-                          _ProfileClassCard(title: 'Science 201', subtitle: 'Room 205 • 12:00 PM', date: 'Monday, June 10, 2024', countdown: '02:13:28', isCurrent: false),
-                          const SizedBox(height: 24),
-                        ],
-                      ),
-                    ),
                   ),
                 ),
               ),
@@ -300,95 +437,3 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-class _ProfileClassCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final String date;
-  final String countdown;
-  final bool isCurrent;
-  const _ProfileClassCard({
-    required this.title,
-    required this.subtitle,
-    required this.date,
-    required this.countdown,
-    required this.isCurrent,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isCurrent ? [const Color(0xFF1E3A8A), const Color(0xFF3B82F6)] : [const Color(0xFF3B82F6), const Color(0xFF60A5FA)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: (isCurrent ? const Color(0xFF1E3A8A) : const Color(0xFF3B82F6)).withOpacity(0.25), blurRadius: 16, offset: const Offset(0, 8))],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.schedule, color: Colors.white),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(isCurrent ? 'Current Class' : 'Next Class', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12)),
-                const SizedBox(height: 2),
-                Text(date, style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 11)),
-                const SizedBox(height: 8),
-                Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                const SizedBox(height: 4),
-                Text(subtitle, style: TextStyle(color: Colors.white.withOpacity(0.95), fontSize: 13, fontWeight: FontWeight.w500)),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(16)),
-            child: Text(countdown, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SettingTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-  const _SettingTile({required this.icon, required this.title, required this.subtitle, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 6))],
-        border: Border.all(color: const Color(0xFFE6ECFF)),
-      ),
-      child: ListTile(
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(color: const Color(0xFF1E3A8A).withOpacity(0.08), borderRadius: BorderRadius.circular(10)),
-          child: Icon(icon, color: const Color(0xFF1E3A8A)),
-        ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(subtitle, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: onTap,
-      ),
-    );
-  }
-}
