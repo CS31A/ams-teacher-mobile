@@ -1,7 +1,5 @@
 # 📱 Attendance Management System - Teacher Mobile App
 
-A modern Flutter mobile application for teachers to manage student attendance efficiently with QR code scanning, real-time tracking, and comprehensive reporting.
-
 ## ✨ Features
 
 ### 🏠 Dashboard
@@ -258,12 +256,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - **Teacher Module Development Team**
 - Backend API Team
 - UI/UX Design Team
-
-## 📞 Support
-
-For issues, questions, or contributions:
-- Create an issue on GitHub
-- Contact: support@example.com
 
 ## 🔄 Version History
 
