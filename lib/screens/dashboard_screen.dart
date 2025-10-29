@@ -28,6 +28,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Map<String, dynamic>? nextClass;
   bool _isLoading = true;
   String? _errorMessage;
+  
+  // Stats data
+  int _totalSections = 0;
+  int _totalSubjects = 0;
+  int _totalStudents = 0;
+  Map<String, dynamic> _groupedSections = {};
 
   @override
   void initState() {
@@ -48,9 +54,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
       List<Map<String, dynamic>> allSchedules = [];
       final groupedSections = result['data'] as Map<String, dynamic>;
       
+      _groupedSections = groupedSections;
+      
+      // Calculate stats
+      _totalSections = groupedSections.keys.length;
+      _totalSubjects = 0;
+      
       for (var subjects in groupedSections.values) {
-        allSchedules.addAll(List<Map<String, dynamic>>.from(subjects));
+        final subjectList = List<Map<String, dynamic>>.from(subjects);
+        _totalSubjects += subjectList.length;
+        allSchedules.addAll(subjectList);
       }
+      
+      // Load student count
+      await _loadStudentCount();
 
       _findCurrentAndNextClass(allSchedules);
       
@@ -66,6 +83,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _isLoading = false;
       });
     }
+  }
+  
+  Future<void> _loadStudentCount() async {
+    int totalStudents = 0;
+    
+    // Get unique section IDs from all subjects
+    Set<int> uniqueSectionIds = {};
+    
+    for (var subjects in _groupedSections.values) {
+      final subjectList = List<Map<String, dynamic>>.from(subjects);
+      for (var subject in subjectList) {
+        if (subject['sectionId'] != null) {
+          uniqueSectionIds.add(subject['sectionId']);
+        }
+      }
+    }
+    
+    // Fetch student count for each unique section
+    for (var sectionId in uniqueSectionIds) {
+      final result = await _apiService.getSectionStudents(sectionId);
+      if (result['success']) {
+        final students = result['data'] as List;
+        totalStudents += students.length;
+      }
+    }
+    
+    setState(() {
+      _totalStudents = totalStudents;
+    });
   }
 
   void _findCurrentAndNextClass(List<Map<String, dynamic>> allSchedules) {
@@ -323,7 +369,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         const SizedBox(height: 16),
                         
-                        // 4 Cards Grid
+                        // 3 Cards Grid
                         GridView.count(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
@@ -333,27 +379,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           childAspectRatio: 1.5,
                           children: [
                             _buildOverviewCard(
-                              'Students',
-                              '156',
-                              Icons.people,
+                              'Sections',
+                              _isLoading ? '...' : '$_totalSections',
+                              Icons.school,
                               const Color(0xFF3B82F6),
                             ),
                             _buildOverviewCard(
-                              'Classes',
-                              '5',
-                              Icons.class_,
+                              'Subjects',
+                              _isLoading ? '...' : '$_totalSubjects',
+                              Icons.book,
                               const Color(0xFF10B981),
                             ),
                             _buildOverviewCard(
-                              'Attendance',
-                              '92%',
-                              Icons.check_circle,
+                              'Students',
+                              _isLoading ? '...' : '$_totalStudents',
+                              Icons.people,
                               const Color(0xFF8B5CF6),
                             ),
                             _buildOverviewCard(
-                              'Teachers',
-                              '12',
-                              Icons.person,
+                              'Classes',
+                              _isLoading ? '...' : '${_totalSubjects > 0 ? _totalSubjects : "0"}',
+                              Icons.class_,
                               const Color(0xFFF59E0B),
                             ),
                           ],
@@ -624,7 +670,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
+            child: const Icon(
               Icons.schedule,
               color: Colors.white,
               size: 28,
