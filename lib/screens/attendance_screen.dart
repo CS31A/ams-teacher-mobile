@@ -253,24 +253,20 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   Widget _buildStatusCard(String title, String count, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            color.withOpacity(0.1),
-            color.withOpacity(0.05),
+            color.withOpacity(0.9),
+            color,
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: color.withOpacity(0.3),
-          width: 1,
-        ),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.2),
+            color: color.withOpacity(0.3),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -278,25 +274,29 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       ),
       child: Column(
         children: [
-          Center(
-            child: Text(
-              count,
-              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: color,
-                fontSize: 32,
-              ),
+          Icon(
+            icon,
+            color: Colors.white,
+            size: 28,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            count,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              fontSize: 28,
+              letterSpacing: 0.5,
             ),
           ),
           const SizedBox(height: 4),
-          Center(
-            child: Text(
-              title,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
+          Text(
+            title,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.95),
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+              letterSpacing: 0.3,
             ),
           ),
         ],
@@ -306,20 +306,20 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   Widget _buildStudentCard(StudentAttendance student) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: _getStatusColor(student.status).withOpacity(0.2),
-          width: 1,
+          color: const Color(0xFF1E3A8A).withOpacity(0.1),
+          width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -327,18 +327,18 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         children: [
           // Status Icon
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: _getStatusColor(student.status).withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
+              color: _getStatusColor(student.status).withOpacity(0.1),
+              shape: BoxShape.circle,
             ),
             child: Icon(
               _getStatusIcon(student.status),
               color: _getStatusColor(student.status),
-              size: 24,
+              size: 22,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
           
           // Student Info
           Expanded(
@@ -347,18 +347,20 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               children: [
                 Text(
                   student.name,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black,
-                    fontSize: 16,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E3A8A),
+                    fontSize: 15,
+                    letterSpacing: 0.2,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   student.studentId,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  style: TextStyle(
                     color: Colors.grey[600],
                     fontSize: 12,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
@@ -369,27 +371,45 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                student.time,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: _getStatusColor(student.status),
-                  fontSize: 14,
+              if (student.time != '--')
+                Text(
+                  student.time,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[700],
+                    fontSize: 13,
+                  ),
+                )
+              else
+                Text(
+                  '--',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[400],
+                    fontSize: 13,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 6),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: _getStatusColor(student.status).withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
+                  color: _getStatusColor(student.status),
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _getStatusColor(student.status).withOpacity(0.3),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Text(
                   student.status.toUpperCase(),
-                  style: TextStyle(
-                    color: _getStatusColor(student.status),
+                  style: const TextStyle(
+                    color: Colors.white,
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ),
@@ -404,28 +424,63 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
+      backgroundColor: Colors.white,
       builder: (context) {
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
+          child: Container(
+            padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Sort by',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1E3A8A),
-                      ),
+                // Handle bar
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 12),
-                _buildSheetOption('All students', 'all', Icons.people_alt),
-                _buildSheetOption('Present', 'present', Icons.check_circle),
-                _buildSheetOption('Late', 'late', Icons.schedule),
-                _buildSheetOption('Absent', 'absent', Icons.cancel),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.filter_list,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Filter by Status',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E3A8A),
+                        fontSize: 20,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                _buildSheetOption('All Students', 'all', Icons.people_alt, const Color(0xFF3B82F6)),
+                _buildSheetOption('Present', 'present', Icons.check_circle, const Color(0xFF10B981)),
+                _buildSheetOption('Late', 'late', Icons.schedule, const Color(0xFFF59E0B)),
+                _buildSheetOption('Absent', 'absent', Icons.cancel, const Color(0xFFEF4444)),
+                const SizedBox(height: 8),
               ],
             ),
           ),
@@ -434,26 +489,72 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
-  Widget _buildSheetOption(String label, String value, IconData icon) {
+  Widget _buildSheetOption(String label, String value, IconData icon, Color color) {
     final bool active = selectedSort == value;
-    return ListTile(
-      dense: true,
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(icon, color: active ? const Color(0xFF1E3A8A) : Colors.grey[600]),
-      title: Text(
-        label,
-        style: TextStyle(
-          color: active ? const Color(0xFF1E3A8A) : Colors.black,
-          fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            selectSort(value);
+            Navigator.pop(context);
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: active ? color.withOpacity(0.1) : Colors.grey[50],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: active ? color.withOpacity(0.3) : Colors.grey.withOpacity(0.2),
+                width: active ? 2 : 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: active ? color.withOpacity(0.2) : Colors.grey[200],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: active ? color : Colors.grey[600],
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: active ? color : Colors.grey[800],
+                      fontWeight: active ? FontWeight.bold : FontWeight.w600,
+                      fontSize: 15,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+                if (active)
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
-      trailing: active
-          ? const Icon(Icons.check, color: Color(0xFF1E3A8A))
-          : const SizedBox.shrink(),
-      onTap: () {
-        selectSort(value);
-        Navigator.pop(context);
-      },
     );
   }
 
