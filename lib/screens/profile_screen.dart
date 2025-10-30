@@ -294,7 +294,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       print('  - Firstname: ${_profile!.firstname} → $newFirstname');
       print('  - Lastname: ${_profile!.lastname} → $newLastname');
       
-      // Update instructor profile (firstname + lastname only, email cannot be changed)
+      // Update instructor profile (firstname + lastname only)
       final response = await _apiService.updateInstructorProfile(
         instructorId: _profile!.id,
         firstname: newFirstname.isEmpty ? null : newFirstname,
@@ -627,7 +627,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     
                     _buildTextField(
                       controller: _emailController,
-                      label: 'Email Address (Read-only)',
+                      label: 'Email Address',
                       hint: 'Email cannot be changed',
                       keyboardType: TextInputType.emailAddress,
                       enabled: false,
