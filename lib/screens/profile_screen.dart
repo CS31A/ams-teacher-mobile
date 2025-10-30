@@ -104,7 +104,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Logo
+              // ACLC Logo
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
@@ -122,19 +122,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   'lib/images/aclc_logo.png',
                   width: 40,
                   height: 40,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.logout_rounded,
-                  color: Colors.white,
-                  size: 40,
                 ),
               ),
               const SizedBox(height: 20),
