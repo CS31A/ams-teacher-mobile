@@ -287,17 +287,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isSaving = true);
 
     try {
+      final newFirstname = _firstnameController.text.trim();
+      final newLastname = _lastnameController.text.trim();
+      
+      print('📝 Saving profile changes:');
+      print('  - Firstname: ${_profile!.firstname} → $newFirstname');
+      print('  - Lastname: ${_profile!.lastname} → $newLastname');
+      
+      // Update instructor profile (firstname + lastname only, email cannot be changed)
       final response = await _apiService.updateInstructorProfile(
         instructorId: _profile!.id,
-        email: _emailController.text.trim(),
-        firstname: _firstnameController.text.trim().isEmpty ? null : _firstnameController.text.trim(),
-        lastname: _lastnameController.text.trim().isEmpty ? null : _lastnameController.text.trim(),
+        firstname: newFirstname.isEmpty ? null : newFirstname,
+        lastname: newLastname.isEmpty ? null : newLastname,
       );
 
       if (!mounted) return;
 
       if (response['success'] == true) {
+        print('✅ Profile updated successfully');
+        print('📊 Response data: ${response['data']}');
+        
+        // Reload profile to get the latest data from backend
         await _loadProfile();
+        
+        if (!mounted) return;
         Navigator.pop(context);
         _showSuccessModal();
       } else {
@@ -614,14 +627,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     
                     _buildTextField(
                       controller: _emailController,
-                      label: 'Email Address',
-                      hint: 'Enter your email',
+                      label: 'Email Address (Read-only)',
+                      hint: 'Email cannot be changed',
                       keyboardType: TextInputType.emailAddress,
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty) return 'Email is required';
-                        final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-                        return emailRegex.hasMatch(v) ? null : 'Enter a valid email';
-                      },
+                      enabled: false,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '⚠️ Email cannot be changed. Please contact admin if needed.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
                     
                     const SizedBox(height: 32),
@@ -691,6 +709,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required String hint,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    bool enabled = true,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -707,11 +726,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
-          style: const TextStyle(fontSize: 16),
+          enabled: enabled,
+          style: TextStyle(
+            fontSize: 16,
+            color: enabled ? Colors.black : Colors.grey[600],
+          ),
           decoration: InputDecoration(
             hintText: hint,
             filled: true,
-            fillColor: const Color(0xFFF8FAFC),
+            fillColor: enabled ? const Color(0xFFF8FAFC) : Colors.grey[100],
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
