@@ -21,16 +21,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _firstnameController = TextEditingController();
   final TextEditingController _lastnameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _currentPasswordController = TextEditingController();
-  final TextEditingController _newPasswordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
   final ApiService _apiService = ApiService();
 
   bool _isSaving = false;
   bool _isLoading = true;
-  bool _isPasswordVisible = false;
-  bool _isNewPasswordVisible = false;
-  bool _isConfirmPasswordVisible = false;
   InstructorProfile? _profile;
   String? _errorMessage;
 
@@ -101,9 +95,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _firstnameController.dispose();
     _lastnameController.dispose();
     _emailController.dispose();
-    _currentPasswordController.dispose();
-    _newPasswordController.dispose();
-    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -323,59 +314,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final newFirstname = _firstnameController.text.trim();
       final newLastname = _lastnameController.text.trim();
       final newEmail = _emailController.text.trim();
-      final currentPassword = _currentPasswordController.text;
-      final newPassword = _newPasswordController.text;
-      final confirmPassword = _confirmPasswordController.text;
       
       print('📝 Saving profile changes:');
       print('  - Firstname: ${_profile!.firstname} → $newFirstname');
       print('  - Lastname: ${_profile!.lastname} → $newLastname');
       print('  - Email: ${_profile!.email} → $newEmail');
       
-      // Validate password change if password fields are filled
-      bool isChangingPassword = currentPassword.isNotEmpty || newPassword.isNotEmpty || confirmPassword.isNotEmpty;
-      
-      if (isChangingPassword) {
-        if (currentPassword.isEmpty) {
-          _showSnackBar('Please enter your current password', isError: true);
-          setState(() => _isSaving = false);
-          return;
-        }
-        
-        if (newPassword.isEmpty) {
-          _showSnackBar('Please enter your new password', isError: true);
-          setState(() => _isSaving = false);
-          return;
-        }
-        
-        if (confirmPassword.isEmpty) {
-          _showSnackBar('Please confirm your new password', isError: true);
-          setState(() => _isSaving = false);
-          return;
-        }
-        
-        if (newPassword != confirmPassword) {
-          _showSnackBar('New password and confirm password do not match', isError: true);
-          setState(() => _isSaving = false);
-          return;
-        }
-        
-        if (newPassword.length < 6) {
-          _showSnackBar('New password must be at least 6 characters', isError: true);
-          setState(() => _isSaving = false);
-          return;
-        }
-      }
-      
-      // Update profile (firstname, lastname, email, and optionally password)
+      // Update profile (firstname, lastname, and email)
       final response = await _apiService.updateInstructorProfile(
         instructorId: _profile!.id,
         firstname: newFirstname.isEmpty ? null : newFirstname,
         lastname: newLastname.isEmpty ? null : newLastname,
         email: newEmail.isEmpty ? null : newEmail,
-        currentPassword: isChangingPassword && currentPassword.isNotEmpty ? currentPassword : null,
-        newPassword: isChangingPassword && newPassword.isNotEmpty ? newPassword : null,
-        confirmNewPassword: isChangingPassword && confirmPassword.isNotEmpty ? confirmPassword : null,
       );
 
       if (!mounted) return;
@@ -407,10 +357,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _firstnameController.text = updatedProfile.firstname ?? '';
               _lastnameController.text = updatedProfile.lastname ?? '';
               _emailController.text = updatedProfile.email;
-              // Clear password fields after successful update
-              _currentPasswordController.clear();
-              _newPasswordController.clear();
-              _confirmPasswordController.clear();
             });
           }
         }
@@ -747,44 +693,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
-                    
-                    // Password Change Fields - Always Visible
-                    _buildPasswordField(
-                      controller: _currentPasswordController,
-                      label: 'Current Password',
-                      hint: 'Enter your current password (optional)',
-                      isVisible: _isPasswordVisible,
-                      onToggleVisibility: () {
-                        setState(() {
-                          _isPasswordVisible = !_isPasswordVisible;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _buildPasswordField(
-                      controller: _newPasswordController,
-                      label: 'New Password',
-                      hint: 'Enter your new password (optional)',
-                      isVisible: _isNewPasswordVisible,
-                      onToggleVisibility: () {
-                        setState(() {
-                          _isNewPasswordVisible = !_isNewPasswordVisible;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _buildPasswordField(
-                      controller: _confirmPasswordController,
-                      label: 'Confirm New Password',
-                      hint: 'Confirm your new password (optional)',
-                      isVisible: _isConfirmPasswordVisible,
-                      onToggleVisibility: () {
-                        setState(() {
-                          _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
-                        });
-                      },
-                    ),
                     
                     const SizedBox(height: 24),
                     
@@ -912,76 +820,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildPasswordField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required bool isVisible,
-    required VoidCallback onToggleVisibility,
-    String? Function(String?)? validator,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1E3A8A),
-          ),
-        ),
-        const SizedBox(height: 6),
-        TextFormField(
-          controller: controller,
-          obscureText: !isVisible,
-          style: const TextStyle(
-            fontSize: 15,
-            color: Colors.black,
-          ),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(fontSize: 14),
-            filled: true,
-            fillColor: const Color(0xFFF8FAFC),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF1E3A8A), width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.red, width: 1.5),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.red, width: 2),
-            ),
-            errorStyle: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            suffixIcon: IconButton(
-              icon: Icon(
-                isVisible ? Icons.visibility : Icons.visibility_off,
-                color: const Color(0xFF1E3A8A),
-              ),
-              onPressed: onToggleVisibility,
-            ),
-          ),
-          validator: validator,
-        ),
-      ],
-    );
-  }
 
   @override
   Widget build(BuildContext context) {

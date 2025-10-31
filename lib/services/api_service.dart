@@ -183,9 +183,6 @@ class ApiService {
     String? email,
     String? firstname,
     String? lastname,
-    String? currentPassword,
-    String? newPassword,
-    String? confirmNewPassword,
   }) async {
     try {
       final token = await StorageService.getToken();
@@ -205,9 +202,6 @@ class ApiService {
       if (email != null) updateData['email'] = email;
       if (firstname != null) updateData['firstname'] = firstname;
       if (lastname != null) updateData['lastname'] = lastname;
-      if (currentPassword != null) updateData['currentPassword'] = currentPassword;
-      if (newPassword != null) updateData['newPassword'] = newPassword;
-      if (confirmNewPassword != null) updateData['confirmNewPassword'] = confirmNewPassword;
       
       print('📝 Update data: $updateData');
 
