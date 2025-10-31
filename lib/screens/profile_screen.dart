@@ -31,7 +31,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isPasswordVisible = false;
   bool _isNewPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
-  bool _showPasswordFields = false;
   InstructorProfile? _profile;
   String? _errorMessage;
 
@@ -334,9 +333,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
       print('  - Email: ${_profile!.email} → $newEmail');
       
       // Validate password change if password fields are filled
-      if (_showPasswordFields) {
-        if (currentPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
-          _showSnackBar('Please fill all password fields', isError: true);
+      bool isChangingPassword = currentPassword.isNotEmpty || newPassword.isNotEmpty || confirmPassword.isNotEmpty;
+      
+      if (isChangingPassword) {
+        if (currentPassword.isEmpty) {
+          _showSnackBar('Please enter your current password', isError: true);
+          setState(() => _isSaving = false);
+          return;
+        }
+        
+        if (newPassword.isEmpty) {
+          _showSnackBar('Please enter your new password', isError: true);
+          setState(() => _isSaving = false);
+          return;
+        }
+        
+        if (confirmPassword.isEmpty) {
+          _showSnackBar('Please confirm your new password', isError: true);
           setState(() => _isSaving = false);
           return;
         }
@@ -360,9 +373,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         firstname: newFirstname.isEmpty ? null : newFirstname,
         lastname: newLastname.isEmpty ? null : newLastname,
         email: newEmail.isEmpty ? null : newEmail,
-        currentPassword: _showPasswordFields && currentPassword.isNotEmpty ? currentPassword : null,
-        newPassword: _showPasswordFields && newPassword.isNotEmpty ? newPassword : null,
-        confirmNewPassword: _showPasswordFields && confirmPassword.isNotEmpty ? confirmPassword : null,
+        currentPassword: isChangingPassword && currentPassword.isNotEmpty ? currentPassword : null,
+        newPassword: isChangingPassword && newPassword.isNotEmpty ? newPassword : null,
+        confirmNewPassword: isChangingPassword && confirmPassword.isNotEmpty ? confirmPassword : null,
       );
 
       if (!mounted) return;
@@ -395,12 +408,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _lastnameController.text = updatedProfile.lastname ?? '';
               _emailController.text = updatedProfile.email;
               // Clear password fields after successful update
-              if (_showPasswordFields) {
-                _currentPasswordController.clear();
-                _newPasswordController.clear();
-                _confirmPasswordController.clear();
-                _showPasswordFields = false;
-              }
+              _currentPasswordController.clear();
+              _newPasswordController.clear();
+              _confirmPasswordController.clear();
             });
           }
         }
@@ -739,93 +749,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 20),
                     
-                    // Password Change Section
-                    InkWell(
-                      onTap: () {
+                    // Password Change Fields - Always Visible
+                    _buildPasswordField(
+                      controller: _currentPasswordController,
+                      label: 'Current Password',
+                      hint: 'Enter your current password (optional)',
+                      isVisible: _isPasswordVisible,
+                      onToggleVisibility: () {
                         setState(() {
-                          _showPasswordFields = !_showPasswordFields;
-                          if (!_showPasswordFields) {
-                            // Clear password fields when hiding
-                            _currentPasswordController.clear();
-                            _newPasswordController.clear();
-                            _confirmPasswordController.clear();
-                          }
+                          _isPasswordVisible = !_isPasswordVisible;
                         });
                       },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E3A8A).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(0xFF1E3A8A).withOpacity(0.3),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.lock_outline,
-                              color: const Color(0xFF1E3A8A),
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                _showPasswordFields ? 'Hide Password Change' : 'Change Password',
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF1E3A8A),
-                                ),
-                              ),
-                            ),
-                            Icon(
-                              _showPasswordFields ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                              color: const Color(0xFF1E3A8A),
-                            ),
-                          ],
-                        ),
-                      ),
                     ),
-                    
-                    if (_showPasswordFields) ...[
-                      const SizedBox(height: 20),
-                      _buildPasswordField(
-                        controller: _currentPasswordController,
-                        label: 'Current Password',
-                        hint: 'Enter your current password',
-                        isVisible: _isPasswordVisible,
-                        onToggleVisibility: () {
-                          setState(() {
-                            _isPasswordVisible = !_isPasswordVisible;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 20),
-                      _buildPasswordField(
-                        controller: _newPasswordController,
-                        label: 'New Password',
-                        hint: 'Enter your new password',
-                        isVisible: _isNewPasswordVisible,
-                        onToggleVisibility: () {
-                          setState(() {
-                            _isNewPasswordVisible = !_isNewPasswordVisible;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 20),
-                      _buildPasswordField(
-                        controller: _confirmPasswordController,
-                        label: 'Confirm New Password',
-                        hint: 'Confirm your new password',
-                        isVisible: _isConfirmPasswordVisible,
-                        onToggleVisibility: () {
-                          setState(() {
-                            _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
-                          });
-                        },
-                      ),
-                    ],
+                    const SizedBox(height: 20),
+                    _buildPasswordField(
+                      controller: _newPasswordController,
+                      label: 'New Password',
+                      hint: 'Enter your new password (optional)',
+                      isVisible: _isNewPasswordVisible,
+                      onToggleVisibility: () {
+                        setState(() {
+                          _isNewPasswordVisible = !_isNewPasswordVisible;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    _buildPasswordField(
+                      controller: _confirmPasswordController,
+                      label: 'Confirm New Password',
+                      hint: 'Confirm your new password (optional)',
+                      isVisible: _isConfirmPasswordVisible,
+                      onToggleVisibility: () {
+                        setState(() {
+                          _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+                        });
+                      },
+                    ),
                     
                     const SizedBox(height: 32),
                     
