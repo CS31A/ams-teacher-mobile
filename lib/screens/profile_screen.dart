@@ -21,10 +21,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _firstnameController = TextEditingController();
   final TextEditingController _lastnameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _currentPasswordController = TextEditingController();
+  final TextEditingController _newPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
   final ApiService _apiService = ApiService();
 
   bool _isSaving = false;
   bool _isLoading = true;
+  bool _isPasswordVisible = false;
+  bool _isNewPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
+  bool _showPasswordFields = false;
   InstructorProfile? _profile;
   String? _errorMessage;
 
@@ -44,7 +51,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final response = await _apiService.getInstructorProfile();
       
       if (response['success'] == true && response['data'] != null) {
-        final profile = InstructorProfile.fromJson(response['data']);
+        final data = response['data'] as Map<String, dynamic>;
+        
+        // Extract instructorProfile from nested structure
+        final instructorProfileData = data['instructorProfile'] as Map<String, dynamic>?;
+        
+        if (instructorProfileData == null) {
+          setState(() {
+            _errorMessage = 'Instructor profile not found';
+            _isLoading = false;
+          });
+          return;
+        }
+        
+        // Merge top-level user data with nested instructorProfile data
+        // The instructorProfile has: id, firstname, lastname, createdAt, updatedAt
+        // The top level has: userId, username, email, role, createdAt, updatedAt
+        final mergedProfileData = {
+          ...instructorProfileData,
+          'email': data['email'], // Use email from top level
+          'userId': data['userId'], // Add userId from top level
+          'isDeleted': false, // Default value
+          'deletedAt': null, // Default value
+        };
+        
+        final profile = InstructorProfile.fromJson(mergedProfileData);
         setState(() {
           _profile = profile;
           _firstnameController.text = profile.firstname ?? '';
@@ -71,6 +102,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _firstnameController.dispose();
     _lastnameController.dispose();
     _emailController.dispose();
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -289,16 +323,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final newFirstname = _firstnameController.text.trim();
       final newLastname = _lastnameController.text.trim();
+      final newEmail = _emailController.text.trim();
+      final currentPassword = _currentPasswordController.text;
+      final newPassword = _newPasswordController.text;
+      final confirmPassword = _confirmPasswordController.text;
       
       print('📝 Saving profile changes:');
       print('  - Firstname: ${_profile!.firstname} → $newFirstname');
       print('  - Lastname: ${_profile!.lastname} → $newLastname');
+      print('  - Email: ${_profile!.email} → $newEmail');
       
-      // Update instructor profile (firstname + lastname only)
+      // Validate password change if password fields are filled
+      if (_showPasswordFields) {
+        if (currentPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
+          _showSnackBar('Please fill all password fields', isError: true);
+          setState(() => _isSaving = false);
+          return;
+        }
+        
+        if (newPassword != confirmPassword) {
+          _showSnackBar('New password and confirm password do not match', isError: true);
+          setState(() => _isSaving = false);
+          return;
+        }
+        
+        if (newPassword.length < 6) {
+          _showSnackBar('New password must be at least 6 characters', isError: true);
+          setState(() => _isSaving = false);
+          return;
+        }
+      }
+      
+      // Update profile (firstname, lastname, email, and optionally password)
       final response = await _apiService.updateInstructorProfile(
         instructorId: _profile!.id,
         firstname: newFirstname.isEmpty ? null : newFirstname,
         lastname: newLastname.isEmpty ? null : newLastname,
+        email: newEmail.isEmpty ? null : newEmail,
+        currentPassword: _showPasswordFields && currentPassword.isNotEmpty ? currentPassword : null,
+        newPassword: _showPasswordFields && newPassword.isNotEmpty ? newPassword : null,
+        confirmNewPassword: _showPasswordFields && confirmPassword.isNotEmpty ? confirmPassword : null,
       );
 
       if (!mounted) return;
@@ -307,8 +371,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
         print('✅ Profile updated successfully');
         print('📊 Response data: ${response['data']}');
         
-        // Reload profile to get the latest data from backend
-        await _loadProfile();
+        // The response['data'] contains the updatedProfile with nested instructorProfile
+        // Parse the new profile structure and update the UI
+        final updatedProfileData = response['data'] as Map<String, dynamic>?;
+        if (updatedProfileData != null) {
+          // Extract instructorProfile from nested structure
+          final instructorProfileData = updatedProfileData['instructorProfile'] as Map<String, dynamic>?;
+          
+          if (instructorProfileData != null) {
+            // Merge top-level user data with nested instructorProfile data
+            final mergedProfileData = {
+              ...instructorProfileData,
+              'email': updatedProfileData['email'], // Use email from top level
+              'userId': updatedProfileData['userId'], // Add userId from top level
+              'isDeleted': false, // Default value
+              'deletedAt': null, // Default value
+            };
+            
+            final updatedProfile = InstructorProfile.fromJson(mergedProfileData);
+            setState(() {
+              _profile = updatedProfile;
+              _firstnameController.text = updatedProfile.firstname ?? '';
+              _lastnameController.text = updatedProfile.lastname ?? '';
+              _emailController.text = updatedProfile.email;
+              // Clear password fields after successful update
+              if (_showPasswordFields) {
+                _currentPasswordController.clear();
+                _newPasswordController.clear();
+                _confirmPasswordController.clear();
+                _showPasswordFields = false;
+              }
+            });
+          }
+        }
         
         if (!mounted) return;
         Navigator.pop(context);
@@ -628,19 +723,109 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _buildTextField(
                       controller: _emailController,
                       label: 'Email Address',
-                      hint: 'Email cannot be changed',
+                      hint: 'Enter your email address',
                       keyboardType: TextInputType.emailAddress,
-                      enabled: false,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Email is required';
+                        }
+                        // Basic email validation
+                        final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+                        if (!emailRegex.hasMatch(v.trim())) {
+                          return 'Please enter a valid email address';
+                        }
+                        return null;
+                      },
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '⚠️ Email cannot be changed. Please contact admin if needed.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                        fontStyle: FontStyle.italic,
+                    const SizedBox(height: 20),
+                    
+                    // Password Change Section
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _showPasswordFields = !_showPasswordFields;
+                          if (!_showPasswordFields) {
+                            // Clear password fields when hiding
+                            _currentPasswordController.clear();
+                            _newPasswordController.clear();
+                            _confirmPasswordController.clear();
+                          }
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E3A8A).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFF1E3A8A).withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.lock_outline,
+                              color: const Color(0xFF1E3A8A),
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _showPasswordFields ? 'Hide Password Change' : 'Change Password',
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1E3A8A),
+                                ),
+                              ),
+                            ),
+                            Icon(
+                              _showPasswordFields ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                              color: const Color(0xFF1E3A8A),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
+                    
+                    if (_showPasswordFields) ...[
+                      const SizedBox(height: 20),
+                      _buildPasswordField(
+                        controller: _currentPasswordController,
+                        label: 'Current Password',
+                        hint: 'Enter your current password',
+                        isVisible: _isPasswordVisible,
+                        onToggleVisibility: () {
+                          setState(() {
+                            _isPasswordVisible = !_isPasswordVisible;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      _buildPasswordField(
+                        controller: _newPasswordController,
+                        label: 'New Password',
+                        hint: 'Enter your new password',
+                        isVisible: _isNewPasswordVisible,
+                        onToggleVisibility: () {
+                          setState(() {
+                            _isNewPasswordVisible = !_isNewPasswordVisible;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      _buildPasswordField(
+                        controller: _confirmPasswordController,
+                        label: 'Confirm New Password',
+                        hint: 'Confirm your new password',
+                        isVisible: _isConfirmPasswordVisible,
+                        onToggleVisibility: () {
+                          setState(() {
+                            _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+                          });
+                        },
+                      ),
+                    ],
                     
                     const SizedBox(height: 32),
                     
@@ -760,6 +945,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
               fontWeight: FontWeight.w500,
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
+          validator: validator,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPasswordField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required bool isVisible,
+    required VoidCallback onToggleVisibility,
+    String? Function(String?)? validator,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1E3A8A),
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          obscureText: !isVisible,
+          style: const TextStyle(
+            fontSize: 16,
+            color: Colors.black,
+          ),
+          decoration: InputDecoration(
+            hintText: hint,
+            filled: true,
+            fillColor: const Color(0xFFF8FAFC),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFF1E3A8A), width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Colors.red, width: 1.5),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Colors.red, width: 2),
+            ),
+            errorStyle: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            suffixIcon: IconButton(
+              icon: Icon(
+                isVisible ? Icons.visibility : Icons.visibility_off,
+                color: const Color(0xFF1E3A8A),
+              ),
+              onPressed: onToggleVisibility,
+            ),
           ),
           validator: validator,
         ),

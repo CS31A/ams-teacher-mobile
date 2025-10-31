@@ -125,7 +125,8 @@ class ApiService {
 
   // ==================== INSTRUCTOR METHODS ====================
 
-  /// Get instructor profile
+  /// Get user profile from /api/account/me endpoint
+  /// Returns UserProfileResponseDto with nested instructorProfile or studentProfile
   Future<Map<String, dynamic>> getInstructorProfile() async {
     try {
       final token = await StorageService.getToken();
@@ -137,8 +138,8 @@ class ApiService {
         };
       }
 
-      final url = '${ApiConstants.baseUrl}/api/instructors/profile';
-      print('🌐 Fetching instructor profile from: $url');
+      final url = '${ApiConstants.baseUrl}/api/account/me';
+      print('🌐 Fetching user profile from: $url');
 
       final response = await http.get(
         Uri.parse(url),
@@ -176,12 +177,15 @@ class ApiService {
     }
   }
 
-  /// Update instructor profile
+  /// Update user profile using /api/account/profile endpoint
   Future<Map<String, dynamic>> updateInstructorProfile({
     required int instructorId,
     String? email,
     String? firstname,
     String? lastname,
+    String? currentPassword,
+    String? newPassword,
+    String? confirmNewPassword,
   }) async {
     try {
       final token = await StorageService.getToken();
@@ -193,14 +197,17 @@ class ApiService {
         };
       }
 
-      final url = '${ApiConstants.baseUrl}/api/instructors/$instructorId';
-      print('🌐 Updating instructor profile at: $url');
+      final url = '${ApiConstants.baseUrl}/api/account/profile';
+      print('🌐 Updating user profile at: $url');
       
       // Build update body - only include non-null fields
       final Map<String, dynamic> updateData = {};
       if (email != null) updateData['email'] = email;
       if (firstname != null) updateData['firstname'] = firstname;
       if (lastname != null) updateData['lastname'] = lastname;
+      if (currentPassword != null) updateData['currentPassword'] = currentPassword;
+      if (newPassword != null) updateData['newPassword'] = newPassword;
+      if (confirmNewPassword != null) updateData['confirmNewPassword'] = confirmNewPassword;
       
       print('📝 Update data: $updateData');
 
@@ -222,10 +229,12 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        // The response structure is: {success, message, updatedProfile}
+        // Extract updatedProfile from the response
         return {
-          'success': true,
-          'message': 'Profile updated successfully',
-          'data': data,
+          'success': data['success'] ?? true,
+          'message': data['message'] ?? 'Profile updated successfully',
+          'data': data['updatedProfile'], // Extract updatedProfile
         };
       } else if (response.statusCode == 400) {
         final errorData = json.decode(response.body);
@@ -236,7 +245,7 @@ class ApiService {
       } else if (response.statusCode == 404) {
         return {
           'success': false,
-          'error': 'Instructor not found',
+          'error': 'Profile not found',
         };
       } else {
         return {
