@@ -320,7 +320,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       print('  - Lastname: ${_profile!.lastname} → $newLastname');
       print('  - Email: ${_profile!.email} → $newEmail');
       
-      // Update profile (firstname, lastname, and email)
+      // Update profile (firstname, lastname, email)
       final response = await _apiService.updateInstructorProfile(
         instructorId: _profile!.id,
         firstname: newFirstname.isEmpty ? null : newFirstname,
@@ -819,7 +819,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ],
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
