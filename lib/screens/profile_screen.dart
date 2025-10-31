@@ -616,7 +616,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildEditModal() {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
+      height: MediaQuery.of(context).size.height * 0.95,
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
@@ -637,10 +637,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Expanded(
             child: SingleChildScrollView(
               padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
                 left: 20,
                 right: 20,
-                top: 20,
+                top: 16,
               ),
               child: Form(
                 key: _formKey,
@@ -666,33 +666,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         child: Image.asset(
                           'lib/images/aclc_logo.png',
-                          width: 45,
-                          height: 45,
+                          width: 40,
+                          height: 40,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     const Center(
                       child: Text(
                         'Edit Profile',
                         style: TextStyle(
-                          fontSize: 26,
+                          fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF1E3A8A),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Center(
                       child: Text(
                         'Update your personal information',
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: 14,
                           color: Colors.grey[600],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
                     
                     _buildTextField(
                       controller: _firstnameController,
@@ -710,7 +710,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     
                     _buildTextField(
                       controller: _lastnameController,
@@ -728,7 +728,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     
                     _buildTextField(
                       controller: _emailController,
@@ -747,7 +747,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     
                     // Password Change Fields - Always Visible
                     _buildPasswordField(
@@ -761,7 +761,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         });
                       },
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     _buildPasswordField(
                       controller: _newPasswordController,
                       label: 'New Password',
@@ -773,7 +773,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         });
                       },
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     _buildPasswordField(
                       controller: _confirmPasswordController,
                       label: 'Confirm New Password',
@@ -786,23 +786,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       },
                     ),
                     
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
                     
                     SizedBox(
                       width: double.infinity,
-                      height: 54,
+                      height: 50,
                       child: ElevatedButton(
                         onPressed: _isSaving ? null : _save,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1E3A8A),
                           foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           elevation: 0,
                         ),
                         child: _isSaving
                             ? const SizedBox(
-                                width: 24,
-                                height: 24,
+                                width: 22,
+                                height: 22,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2.5,
                                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
@@ -812,26 +812,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 'Save Changes',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 17,
+                                  fontSize: 16,
                                 ),
                               ),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     SizedBox(
                       width: double.infinity,
-                      height: 54,
+                      height: 50,
                       child: OutlinedButton(
                         onPressed: () => Navigator.pop(context),
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Color(0xFF1E3A8A), width: 2),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         child: const Text(
                           'Cancel',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 17,
+                            fontSize: 16,
                             color: Color(0xFF1E3A8A),
                           ),
                         ),
@@ -861,49 +861,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Text(
           label,
           style: const TextStyle(
-            fontSize: 15,
+            fontSize: 14,
             fontWeight: FontWeight.w600,
             color: Color(0xFF1E3A8A),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
           enabled: enabled,
           style: TextStyle(
-            fontSize: 16,
+            fontSize: 15,
             color: enabled ? Colors.black : Colors.grey[600],
           ),
           decoration: InputDecoration(
             hintText: hint,
+            hintStyle: const TextStyle(fontSize: 14),
             filled: true,
             fillColor: enabled ? const Color(0xFFF8FAFC) : Colors.grey[100],
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Color(0xFF1E3A8A), width: 2),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Colors.red, width: 1.5),
             ),
             focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Colors.red, width: 2),
             ),
             errorStyle: const TextStyle(
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w500,
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           ),
           validator: validator,
         ),
@@ -925,48 +926,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Text(
           label,
           style: const TextStyle(
-            fontSize: 15,
+            fontSize: 14,
             fontWeight: FontWeight.w600,
             color: Color(0xFF1E3A8A),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         TextFormField(
           controller: controller,
           obscureText: !isVisible,
           style: const TextStyle(
-            fontSize: 16,
+            fontSize: 15,
             color: Colors.black,
           ),
           decoration: InputDecoration(
             hintText: hint,
+            hintStyle: const TextStyle(fontSize: 14),
             filled: true,
             fillColor: const Color(0xFFF8FAFC),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Color(0xFF1E3A8A), width: 2),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Colors.red, width: 1.5),
             ),
             focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Colors.red, width: 2),
             ),
             errorStyle: const TextStyle(
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w500,
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             suffixIcon: IconButton(
               icon: Icon(
                 isVisible ? Icons.visibility : Icons.visibility_off,
