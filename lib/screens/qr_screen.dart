@@ -430,72 +430,161 @@ class _QrScreenState extends State<QrScreen> {
   }
 
   Widget _buildScheduleList() {
-    return Column(
-      children: _schedules.map((schedule) {
-        final isSelected = _selectedSchedule == '${schedule['code']} - ${schedule['name']}';
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected ? Colors.blue[900]! : Colors.grey[300]!,
-              width: isSelected ? 2 : 1,
+    if (_viewMode == 'grid') {
+      return GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.85,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+        ),
+        itemCount: _schedules.length,
+        itemBuilder: (context, index) {
+          final schedule = _schedules[index];
+          final isSelected = _selectedSchedule == '${schedule['code']} - ${schedule['name']}';
+          return Container(
+            decoration: BoxDecoration(
+              color: isSelected ? Colors.blue[900] : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isSelected ? Colors.blue[900]! : Colors.grey[300]!,
+                width: isSelected ? 2 : 1,
+              ),
             ),
-          ),
-          child: InkWell(
-            onTap: () {
-              setState(() {
-                _selectedSchedule = '${schedule['code']} - ${schedule['name']}';
-              });
-            },
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Icon(Icons.calendar_today_rounded, color: Colors.blue[900], size: 24),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  _selectedSchedule = '${schedule['code']} - ${schedule['name']}';
+                });
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          '${schedule['code']} - ${schedule['name']}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
+                        Icon(
+                          Icons.calendar_today_rounded,
+                          color: isSelected ? Colors.white : Colors.blue[900],
+                          size: 24,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${schedule['days']} ${schedule['time']}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
+                        Container(
+                          width: 20,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isSelected ? Colors.white : Colors.grey[400]!,
+                              width: 2,
+                            ),
+                            color: isSelected ? Colors.white : Colors.transparent,
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  Radio<String>(
-                    value: '${schedule['code']} - ${schedule['name']}',
-                    groupValue: _selectedSchedule,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedSchedule = value;
-                      });
-                    },
-                    activeColor: Colors.blue[900],
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    Text(
+                      '${schedule['code']} - ${schedule['name']}',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isSelected ? Colors.white : Colors.black87,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: Text(
+                        '${schedule['days']} ${schedule['time']}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isSelected ? Colors.white70 : Colors.grey[600],
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-      }).toList(),
-    );
+          );
+        },
+      );
+    } else {
+      return Column(
+        children: _schedules.map((schedule) {
+          final isSelected = _selectedSchedule == '${schedule['code']} - ${schedule['name']}';
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isSelected ? Colors.blue[900]! : Colors.grey[300]!,
+                width: isSelected ? 2 : 1,
+              ),
+            ),
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  _selectedSchedule = '${schedule['code']} - ${schedule['name']}';
+                });
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_today_rounded, color: Colors.blue[900], size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${schedule['code']} - ${schedule['name']}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${schedule['days']} ${schedule['time']}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Radio<String>(
+                      value: '${schedule['code']} - ${schedule['name']}',
+                      groupValue: _selectedSchedule,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedSchedule = value;
+                        });
+                      },
+                      activeColor: Colors.blue[900],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      );
+    }
   }
 
   Widget _buildCreateButton() {
