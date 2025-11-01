@@ -15,11 +15,9 @@ class QrScreen extends StatefulWidget {
 class _QrScreenState extends State<QrScreen> {
   // Form state
   final TextEditingController _searchController = TextEditingController();
-  final LayerLink _layerLink = LayerLink();
-  OverlayEntry? _overlayEntry;
   
-  String? _selectedSubject;
-  bool _isDropdownOpen = false;
+  String? _selectedSchedule;
+  String _viewMode = 'list'; // 'list' or 'grid'
   
   // Calendar state
   DateTime _focusedDay = DateTime.now();
@@ -27,142 +25,185 @@ class _QrScreenState extends State<QrScreen> {
   CalendarFormat _calendarFormat = CalendarFormat.month;
   
   // Mock schedules for UI
-  final List<String> _schedules = [
-    'Software Engineering 1',
-    'Computing Programming 1',
-    'Information Assurance',
-    'Data Structures',
-    'Database Systems',
-  ];
-  
-  // Mock upcoming sessions
-  final List<Map<String, dynamic>> _upcomingSessions = [
+  final List<Map<String, dynamic>> _schedules = [
     {
-      'subject': 'Software Engineering 1',
-      'time': '10:00 AM',
-      'date': 'Today',
-      'duration': '45 min',
+      'code': 'CS11A',
+      'name': 'Computing Programming 1',
+      'days': 'Monday, Thursday',
+      'time': '7:30 AM - 10:30 AM',
     },
     {
-      'subject': 'Computing Programming 1',
-      'time': '1:30 PM',
-      'date': 'Wed, Oct 25',
-      'duration': '90 min',
+      'code': 'CS21A',
+      'name': 'Data Structures',
+      'days': 'Mon, Thu',
+      'time': '10:30 AM - 12:30 PM',
     },
     {
-      'subject': 'Information Assurance',
-      'time': '9:15 AM',
-      'date': 'Thu, Oct 26',
-      'duration': '60 min',
+      'code': 'IT21B',
+      'name': 'Introduction to Programming',
+      'days': 'Tue, Fri',
+      'time': '12:30 PM - 3:30 PM',
     },
   ];
 
   @override
   void dispose() {
     _searchController.dispose();
-    _closeDropdown();
     super.dispose();
   }
-
-  void _toggleDropdown() {
-    if (_isDropdownOpen) {
-      _closeDropdown();
-    } else {
-      _openDropdown();
-    }
+  
+  String _getCurrentDate() {
+    final now = DateTime.now();
+    final monthName = ['January', 'February', 'March', 'April', 'May', 'June',
+                      'July', 'August', 'September', 'October', 'November', 'December'];
+    return 'Today, ${monthName[now.month - 1]} ${now.day}';
   }
 
-  void _openDropdown() {
-    _overlayEntry = _createOverlayEntry();
-    Overlay.of(context).insert(_overlayEntry!);
-    setState(() {
-      _isDropdownOpen = true;
-    });
-  }
-
-  void _closeDropdown() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-    setState(() {
-      _isDropdownOpen = false;
-    });
-  }
-
-  OverlayEntry _createOverlayEntry() {
-    return OverlayEntry(
-      builder: (context) {
-        return GestureDetector(
-          onTap: _closeDropdown,
-          behavior: HitTestBehavior.translucent,
-          child: Stack(
+  void _showCalendarModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.9,
+          decoration: BoxDecoration(
+            color: Colors.blue[900],
+            borderRadius: BorderRadius.circular(24),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Positioned(
-                width: MediaQuery.of(context).size.width - 48,
-                child: CompositedTransformFollower(
-                  link: _layerLink,
-                  showWhenUnlinked: false,
-                  offset: const Offset(0, 60),
-                  child: Material(
-                    elevation: 4,
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      constraints: const BoxConstraints(maxHeight: 240),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[300]!),
-                      ),
-                      child: ListView.builder(
-                        padding: EdgeInsets.zero,
-                        shrinkWrap: true,
-                        itemCount: _schedules.length,
-                        itemBuilder: (context, index) {
-                          final schedule = _schedules[index];
-                          final isSelected = _selectedSubject == schedule;
-                          return InkWell(
-                            onTap: () {
-                              setState(() {
-                                _selectedSubject = schedule;
-                              });
-                              _closeDropdown();
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 14,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isSelected ? Colors.grey[100] : Colors.white,
-                                border: index < _schedules.length - 1
-                                    ? Border(
-                                        bottom: BorderSide(
-                                          color: Colors.grey[200]!,
-                                          width: 1,
-                                        ),
-                                      )
-                                    : null,
-                              ),
-                              child: Text(
-                                schedule,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.black87,
-                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Calendar',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, color: Colors.white),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              // Calendar
+              TableCalendar(
+                firstDay: DateTime.utc(2020, 1, 1),
+                lastDay: DateTime.utc(2030, 12, 31),
+                focusedDay: _focusedDay,
+                selectedDayPredicate: (day) {
+                  return isSameDay(_selectedDay, day);
+                },
+                onDaySelected: (selectedDay, focusedDay) {
+                  setState(() {
+                    _selectedDay = selectedDay;
+                    _focusedDay = focusedDay;
+                  });
+                  Navigator.pop(context);
+                },
+                onPageChanged: (focusedDay) {
+                  setState(() {
+                    _focusedDay = focusedDay;
+                  });
+                },
+                calendarFormat: _calendarFormat,
+                onFormatChanged: (format) {
+                  setState(() {
+                    _calendarFormat = format;
+                  });
+                },
+                headerStyle: HeaderStyle(
+                  formatButtonVisible: true,
+                  titleCentered: true,
+                  formatButtonShowsNext: false,
+                  formatButtonDecoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  formatButtonTextStyle: TextStyle(
+                    color: Colors.blue[900],
+                    fontWeight: FontWeight.bold,
+                  ),
+                  titleTextStyle: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  leftChevronIcon: const Icon(
+                    Icons.chevron_left,
+                    color: Colors.white,
+                  ),
+                  rightChevronIcon: const Icon(
+                    Icons.chevron_right,
+                    color: Colors.white,
+                  ),
                 ),
+                daysOfWeekStyle: const DaysOfWeekStyle(
+                  weekdayStyle: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  weekendStyle: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                calendarStyle: CalendarStyle(
+                  defaultTextStyle: const TextStyle(
+                    color: Colors.white,
+                  ),
+                  weekendTextStyle: const TextStyle(
+                    color: Colors.white,
+                  ),
+                  todayDecoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.3),
+                    shape: BoxShape.circle,
+                  ),
+                  selectedDecoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  markerDecoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  selectedTextStyle: TextStyle(
+                    color: Colors.blue[900],
+                    fontWeight: FontWeight.bold,
+                  ),
+                  todayTextStyle: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  outsideDaysVisible: false,
+                  outsideTextStyle: TextStyle(
+                    color: Colors.white.withOpacity(0.3),
+                  ),
+                ),
+                availableCalendarFormats: const {
+                  CalendarFormat.month: 'Month',
+                  CalendarFormat.week: 'Week',
+                },
               ),
             ],
           ),
-        );
-      },
+        ),
+      ),
     );
+  }
+
+  bool isSameDay(DateTime? a, DateTime b) {
+    if (a == null) return false;
+    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
   @override
@@ -170,27 +211,36 @@ class _QrScreenState extends State<QrScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[200],
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              // Header
-              Center(child: _buildHeader()),
-              const SizedBox(height: 32),
-              
-              // Assigned Schedule Section
-              _buildAssignedScheduleSection(),
-              const SizedBox(height: 32),
-              
-              // Upcoming Sessions Section
-              _buildUpcomingSessionsSection(),
-              const SizedBox(height: 32),
-              
-              // Create Session Button
-              _buildCreateButton(),
-              const SizedBox(height: 100),
-            ],
-          ),
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  // Header
+                  _buildHeader(),
+                  const SizedBox(height: 24),
+                  
+                  // Search Bar
+                  _buildSearchBar(),
+                  const SizedBox(height: 24),
+                  
+                  // Session Date Card
+                  _buildSessionDateCard(),
+                  const SizedBox(height: 24),
+                  
+                  // View Toggle
+                  _buildViewToggle(),
+                  const SizedBox(height: 20),
+                  
+                  // Schedule List
+                  _buildScheduleList(),
+                  const SizedBox(height: 100),
+                ],
+              ),
+            ),
+            _buildCreateButton(),
+          ],
         ),
       ),
       bottomNavigationBar: _buildBottomNav(context),
@@ -199,27 +249,32 @@ class _QrScreenState extends State<QrScreen> {
 
   Widget _buildHeader() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Image.asset(
-          'lib/images/aclc_logo.png',
-          width: 80,
-          height: 80,
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          'Create Session',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Icon(Icons.arrow_back, color: Colors.black87),
+            const Expanded(
+              child: Center(
+                child: Text(
+                  'Create Session',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 24),
+          ],
         ),
         const SizedBox(height: 8),
         Text(
-          'Select a schedule to begin.',
+          'Select a schedule to create a class session.',
           style: TextStyle(
-            fontSize: 16,
+            fontSize: 14,
             color: Colors.grey[600],
           ),
         ),
@@ -227,123 +282,33 @@ class _QrScreenState extends State<QrScreen> {
     );
   }
 
-  Widget _buildAssignedScheduleSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 4),
-          child: Text(
-            'Assigned Schedule',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-          ),
+  Widget _buildSearchBar() {
+    return TextField(
+      controller: _searchController,
+      decoration: InputDecoration(
+        hintText: 'Search schedules...',
+        prefixIcon: Icon(Icons.search_rounded, color: Colors.grey[600]),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!),
         ),
-        const SizedBox(height: 12),
-        CompositedTransformTarget(
-          link: _layerLink,
-          child: GestureDetector(
-            onTap: _toggleDropdown,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.grey[300]!,
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    _selectedSubject ?? 'Select schedule',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: _selectedSubject == null ? Colors.grey[600] : Colors.black87,
-                    ),
-                  ),
-                  Icon(
-                    _isDropdownOpen
-                        ? Icons.keyboard_arrow_up_rounded
-                        : Icons.keyboard_arrow_down_rounded,
-                    color: Colors.grey[700],
-                  ),
-                ],
-              ),
-            ),
-          ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!),
         ),
-        const SizedBox(height: 12),
-        InkWell(
-          onTap: () => _showCalendarModal(context),
-          child: Row(
-            children: [
-              Icon(Icons.calendar_today_rounded, size: 18, color: Colors.grey[600]),
-              const SizedBox(width: 6),
-              Text(
-                'View Full Calendar',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.blue[900],
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.blue, width: 2),
         ),
-      ],
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
     );
   }
 
-  Widget _buildUpcomingSessionsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Upcoming Sessions',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _searchController,
-          decoration: InputDecoration(
-            hintText: 'Search sessions...',
-            prefixIcon: Icon(Icons.search_rounded, color: Colors.grey[600]),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.blue, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
-        ),
-        const SizedBox(height: 16),
-        ..._upcomingSessions.map((session) => _buildSessionCard(session)),
-      ],
-    );
-  }
-
-  Widget _buildSessionCard(Map<String, dynamic> session) {
+  Widget _buildSessionDateCard() {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -352,50 +317,116 @@ class _QrScreenState extends State<QrScreen> {
       ),
       child: Row(
         children: [
+          Icon(Icons.calendar_today_rounded, color: Colors.blue[900], size: 24),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  session['subject'],
+                  'Session Date',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _getCurrentDate(),
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Text(
-                      session['date'] ?? '',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    if (session['duration'] != null) ...[
-                      const SizedBox(width: 8),
-                      Text(
-                        session['duration'],
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
               ],
             ),
           ),
-          Text(
-            session['time'],
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+          IconButton(
+            icon: Icon(Icons.edit_calendar_rounded, color: Colors.blue[900]),
+            onPressed: () => _showCalendarModal(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildViewToggle() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _viewMode = 'list';
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _viewMode == 'list' ? Colors.blue[900] : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.view_list_rounded,
+                      color: _viewMode == 'list' ? Colors.white : Colors.grey[600],
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'List View',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: _viewMode == 'list' ? Colors.white : Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _viewMode = 'grid';
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _viewMode == 'grid' ? Colors.blue[900] : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.grid_view_rounded,
+                      color: _viewMode == 'grid' ? Colors.white : Colors.grey[600],
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Grid View',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: _viewMode == 'grid' ? Colors.white : Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
@@ -403,53 +434,125 @@ class _QrScreenState extends State<QrScreen> {
     );
   }
 
-  Widget _buildCreateButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton(
-        onPressed: () {
-          if (_selectedSubject != null) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => SessionDetailsScreen(
-                  subject: _selectedSubject!,
-                  scheduleTime: '9:00 AM - 10:30 AM',
-                ),
+  Widget _buildScheduleList() {
+    return Column(
+      children: _schedules.map((schedule) {
+        final isSelected = _selectedSchedule == '${schedule['code']} - ${schedule['name']}';
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? Colors.blue[900]! : Colors.grey[300]!,
+              width: isSelected ? 2 : 1,
+            ),
+          ),
+          child: InkWell(
+            onTap: () {
+              setState(() {
+                _selectedSchedule = '${schedule['code']} - ${schedule['name']}';
+              });
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Icon(Icons.calendar_today_rounded, color: Colors.blue[900], size: 24),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${schedule['code']} - ${schedule['name']}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${schedule['days']} ${schedule['time']}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Radio<String>(
+                    value: '${schedule['code']} - ${schedule['name']}',
+                    groupValue: _selectedSchedule,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedSchedule = value;
+                      });
+                    },
+                    activeColor: Colors.blue[900],
+                  ),
+                ],
               ),
-            );
-          } else {
-            _showSnackBar('Please select a schedule first');
-          }
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue[900],
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            ),
           ),
-          elevation: 0,
-        ),
-        child: const Text(
-          'Create Session',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
+        );
+      }).toList(),
     );
   }
 
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.blue[900],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+  Widget _buildCreateButton() {
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: ElevatedButton(
+            onPressed: _selectedSchedule != null ? () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SessionDetailsScreen(
+                    subject: _selectedSchedule!,
+                    scheduleTime: _schedules.firstWhere((s) => 
+                      '${s['code']} - ${s['name']}' == _selectedSchedule
+                    )['time'],
+                  ),
+                ),
+              );
+            } : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue[900],
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              elevation: 0,
+            ),
+            child: const Text(
+              'Create Session',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -506,148 +609,6 @@ class _QrScreenState extends State<QrScreen> {
             label: 'Profile',
           ),
         ],
-      ),
-    );
-  }
-
-  void _showCalendarModal(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Container(
-          width: MediaQuery.of(context).size.width * 0.9,
-          decoration: BoxDecoration(
-            color: Colors.blue[900],
-            borderRadius: BorderRadius.circular(24),
-          ),
-          padding: EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Calendar',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: Icon(Icons.close, color: Colors.white),
-                  ),
-                ],
-              ),
-              SizedBox(height: 20),
-              // Calendar
-              TableCalendar(
-                  firstDay: DateTime.utc(2020, 1, 1),
-                  lastDay: DateTime.utc(2030, 12, 31),
-                  focusedDay: _focusedDay,
-                  selectedDayPredicate: (day) {
-                    return isSameDay(_selectedDay, day);
-                  },
-                  onDaySelected: (selectedDay, focusedDay) {
-                    setState(() {
-                      _selectedDay = selectedDay;
-                      _focusedDay = focusedDay;
-                    });
-                    Navigator.pop(context);
-                  },
-                  onPageChanged: (focusedDay) {
-                    setState(() {
-                      _focusedDay = focusedDay;
-                    });
-                  },
-                  calendarFormat: _calendarFormat,
-                  onFormatChanged: (format) {
-                    setState(() {
-                      _calendarFormat = format;
-                    });
-                  },
-                  headerStyle: HeaderStyle(
-                    formatButtonVisible: true,
-                    titleCentered: true,
-                    formatButtonShowsNext: false,
-                    formatButtonDecoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    formatButtonTextStyle: TextStyle(
-                      color: Colors.blue[900],
-                      fontWeight: FontWeight.bold,
-                    ),
-                    titleTextStyle: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    leftChevronIcon: Icon(
-                      Icons.chevron_left,
-                      color: Colors.white,
-                    ),
-                    rightChevronIcon: Icon(
-                      Icons.chevron_right,
-                      color: Colors.white,
-                    ),
-                  ),
-                  daysOfWeekStyle: DaysOfWeekStyle(
-                    weekdayStyle: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    weekendStyle: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  calendarStyle: CalendarStyle(
-                    defaultTextStyle: TextStyle(
-                      color: Colors.white,
-                    ),
-                    weekendTextStyle: TextStyle(
-                      color: Colors.white,
-                    ),
-                    todayDecoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.3),
-                      shape: BoxShape.circle,
-                    ),
-                    selectedDecoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    markerDecoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    selectedTextStyle: TextStyle(
-                      color: Colors.blue[900],
-                      fontWeight: FontWeight.bold,
-                    ),
-                    todayTextStyle: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    outsideDaysVisible: false,
-                    outsideTextStyle: TextStyle(
-                      color: Colors.white.withOpacity(0.3),
-                    ),
-                  ),
-                  availableCalendarFormats: const {
-                    CalendarFormat.month: 'Month',
-                    CalendarFormat.week: 'Week',
-                  },
-                ),
-            ],
-          ),
-        ),
       ),
     );
   }
