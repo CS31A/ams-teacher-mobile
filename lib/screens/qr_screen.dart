@@ -212,71 +212,106 @@ class _QrScreenState extends State<QrScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[200],
-      body: SafeArea(
-        child: Stack(
-          children: [
-            SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  // Header
-                  _buildHeader(),
-                  const SizedBox(height: 24),
-                  
-                  // Search Bar
-                  _buildSearchBar(),
-                  const SizedBox(height: 24),
-                  
-                  // Session Date Card
-                  _buildSessionDateCard(),
-                  const SizedBox(height: 24),
-                  
-                  // View Toggle
-                  _buildViewToggle(),
-                  const SizedBox(height: 20),
-                  
-                  // Schedule List
-                  _buildScheduleList(),
-                  const SizedBox(height: 100),
-                ],
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF1E3A8A), // Deep blue
+              Color(0xFF3B82F6), // Blue
+              Color(0xFF60A5FA), // Light blue
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    // ACLC Logo
+                    Image.asset(
+                      'lib/images/aclc_logo.png',
+                      width: 50,
+                      height: 50,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(width: 12),
+                    // Create Session Title
+                    const Expanded(
+                      child: Text(
+                        'Create Session',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 24,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            _buildCreateButton(),
-          ],
+              
+              // Main Content with curved top
+              Expanded(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(25),
+                      topRight: Radius.circular(25),
+                    ),
+                  ),
+                  child: Stack(
+                    children: [
+                      SingleChildScrollView(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 8),
+                            // Subtitle
+                            Text(
+                              'Select a schedule to create a class session.',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            
+                            // Search Bar
+                            _buildSearchBar(),
+                            const SizedBox(height: 24),
+                            
+                            // Session Date Card
+                            _buildSessionDateCard(),
+                            const SizedBox(height: 24),
+                            
+                            // View Toggle
+                            _buildViewToggle(),
+                            const SizedBox(height: 20),
+                            
+                            // Schedule List
+                            _buildScheduleList(),
+                            const SizedBox(height: 100),
+                          ],
+                        ),
+                      ),
+                      _buildCreateButton(),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: _buildBottomNav(context),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Image.asset(
-          'lib/images/aclc_logo.png',
-          width: 80,
-          height: 80,
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          'Create Session',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Select a schedule to create a class session.',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
     );
   }
 
@@ -315,7 +350,7 @@ class _QrScreenState extends State<QrScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.calendar_today_rounded, color: Colors.blue[900], size: 24),
+          Icon(Icons.calendar_today_rounded, color: const Color(0xFF1E3A8A), size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -341,7 +376,7 @@ class _QrScreenState extends State<QrScreen> {
             ),
           ),
           IconButton(
-            icon: Icon(Icons.edit_calendar_rounded, color: Colors.blue[900]),
+            icon: const Icon(Icons.edit_calendar_rounded, color: Color(0xFF1E3A8A)),
             onPressed: () => _showCalendarModal(context),
           ),
         ],
@@ -369,7 +404,7 @@ class _QrScreenState extends State<QrScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: _viewMode == 'list' ? Colors.blue[900] : Colors.transparent,
+                  color: _viewMode == 'list' ? const Color(0xFF1E3A8A) : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -403,7 +438,7 @@ class _QrScreenState extends State<QrScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: _viewMode == 'grid' ? Colors.blue[900] : Colors.transparent,
+                  color: _viewMode == 'grid' ? const Color(0xFF1E3A8A) : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -449,10 +484,10 @@ class _QrScreenState extends State<QrScreen> {
           final isSelected = _selectedSchedule == '${schedule['code']} - ${schedule['name']}';
           return Container(
             decoration: BoxDecoration(
-              color: isSelected ? Colors.blue[900] : Colors.white,
+              color: isSelected ? const Color(0xFF1E3A8A) : Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isSelected ? Colors.blue[900]! : Colors.grey[300]!,
+                color: isSelected ? const Color(0xFF1E3A8A) : Colors.grey[300]!,
                 width: isSelected ? 2 : 1,
               ),
             ),
@@ -473,7 +508,7 @@ class _QrScreenState extends State<QrScreen> {
                       children: [
                         Icon(
                           Icons.calendar_today_rounded,
-                          color: isSelected ? Colors.white : Colors.blue[900],
+                          color: isSelected ? Colors.white : const Color(0xFF1E3A8A),
                           size: 24,
                         ),
                         Container(
@@ -530,7 +565,7 @@ class _QrScreenState extends State<QrScreen> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isSelected ? Colors.blue[900]! : Colors.grey[300]!,
+                color: isSelected ? const Color(0xFF1E3A8A) : Colors.grey[300]!,
                 width: isSelected ? 2 : 1,
               ),
             ),
@@ -545,7 +580,7 @@ class _QrScreenState extends State<QrScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    Icon(Icons.calendar_today_rounded, color: Colors.blue[900], size: 24),
+                    const Icon(Icons.calendar_today_rounded, color: Color(0xFF1E3A8A), size: 24),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -570,7 +605,7 @@ class _QrScreenState extends State<QrScreen> {
                         ],
                       ),
                     ),
-                    Radio<String>(
+                      Radio<String>(
                       value: '${schedule['code']} - ${schedule['name']}',
                       groupValue: _selectedSchedule,
                       onChanged: (value) {
@@ -578,7 +613,7 @@ class _QrScreenState extends State<QrScreen> {
                           _selectedSchedule = value;
                         });
                       },
-                      activeColor: Colors.blue[900],
+                      activeColor: const Color(0xFF1E3A8A),
                     ),
                   ],
                 ),
@@ -625,7 +660,7 @@ class _QrScreenState extends State<QrScreen> {
               );
             } : null,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue[900],
+              backgroundColor: const Color(0xFF1E3A8A),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
@@ -1012,7 +1047,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue[900],
+              backgroundColor: const Color(0xFF1E3A8A),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -1038,130 +1073,164 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[200],
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Session Details',
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF1E3A8A), // Deep blue
+              Color(0xFF3B82F6), // Blue
+              Color(0xFF60A5FA), // Light blue
+            ],
           ),
         ),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-                    // Logo
-                    Center(
-                      child: Image.asset(
-                        'lib/images/aclc_logo.png',
-                        width: 80,
-                        height: 80,
-                      ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    // Back Button
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
                     ),
-                    const SizedBox(height: 16),
-                    
-                    // Course Title
-                    Center(
-                      child: Text(
-                        widget.subject,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    
-                    // Session Information
-                    _buildInfoRow(
-                      icon: Icons.access_time,
-                      mainText: widget.scheduleTime,
-                      subText: '90 minutes',
-                      iconColor: Colors.blue[900]!,
-                    ),
-                    const SizedBox(height: 20),
-                    
-                    _buildInfoRow(
-                      icon: Icons.location_on,
-                      mainText: 'Short Course Laboratory',
-                      subText: 'Originally Room 301',
-                      iconColor: Colors.blue[900]!,
-                      badge: _hasRoomChanged ? 'Room Changed' : null,
-                    ),
-                    const SizedBox(height: 20),
-                    
-                    _buildInfoRow(
-                      icon: Icons.play_circle,
-                      mainText: 'Session Active',
-                      subText: 'Status',
-                      iconColor: Colors.green[700]!,
-                    ),
-                    const SizedBox(height: 20),
-                    
-                    _buildInfoRow(
-                      icon: Icons.history,
-                      mainText: _sessionStartTime != null 
-                          ? _formatTime(_sessionStartTime!)
-                          : 'Not started',
-                      subText: 'Session Start Time',
-                      iconColor: Colors.blue[900]!,
-                    ),
-                    const SizedBox(height: 20),
-                    
-                    _buildInfoRow(
-                      icon: Icons.person,
-                      mainText: 'Jovelyn Comaingking',
-                      subText: 'Instructor',
-                      iconColor: Colors.blue[900]!,
-                    ),
-                    
-                    const SizedBox(height: 32),
-                    
-                    // Action Buttons
-                    SizedBox(
-                      width: double.infinity,
+                    const SizedBox(width: 12),
+                    // ACLC Logo
+                    Image.asset(
+                      'lib/images/aclc_logo.png',
+                      width: 50,
                       height: 50,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          // Start session first if not started
-                          if (_sessionId == null) {
-                            _startSession();
-                          } else {
-                            _showQrCodeModal(context);
-                          }
-                        },
-                        icon: const Icon(Icons.qr_code_2, size: 24),
-                        label: const Text(
-                          'Generate QR Code',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue[900],
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(width: 12),
+                    // Session Details Title
+                    const Expanded(
+                      child: Text(
+                        'Session Details',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 24,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
+                  ],
+                ),
+              ),
+              
+              // Main Content with curved top
+              Expanded(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(25),
+                      topRight: Radius.circular(25),
+                    ),
+                  ),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 8),
+                        
+                        // Course Title
+                        Center(
+                          child: Text(
+                            widget.subject,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                    
+                        // Session Information
+                        _buildInfoRow(
+                          icon: Icons.access_time,
+                          mainText: widget.scheduleTime,
+                          subText: '90 minutes',
+                          iconColor: const Color(0xFF1E3A8A),
+                        ),
+                        const SizedBox(height: 20),
+                        
+                        _buildInfoRow(
+                          icon: Icons.location_on,
+                          mainText: 'Short Course Laboratory',
+                          subText: 'Originally Room 301',
+                          iconColor: const Color(0xFF1E3A8A),
+                          badge: _hasRoomChanged ? 'Room Changed' : null,
+                        ),
+                        const SizedBox(height: 20),
+                        
+                        _buildInfoRow(
+                          icon: Icons.play_circle,
+                          mainText: 'Session Active',
+                          subText: 'Status',
+                          iconColor: Colors.green[700]!,
+                        ),
+                        const SizedBox(height: 20),
+                        
+                        _buildInfoRow(
+                          icon: Icons.history,
+                          mainText: _sessionStartTime != null 
+                              ? _formatTime(_sessionStartTime!)
+                              : 'Not started',
+                          subText: 'Session Start Time',
+                          iconColor: const Color(0xFF1E3A8A),
+                        ),
+                        const SizedBox(height: 20),
+                        
+                        _buildInfoRow(
+                          icon: Icons.person,
+                          mainText: 'Jovelyn Comaingking',
+                          subText: 'Instructor',
+                          iconColor: const Color(0xFF1E3A8A),
+                        ),
+                        
+                        const SizedBox(height: 32),
+                        
+                        // Action Buttons
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              // Start session first if not started
+                              if (_sessionId == null) {
+                                _startSession();
+                              } else {
+                                _showQrCodeModal(context);
+                              }
+                            },
+                            icon: const Icon(Icons.qr_code_2, size: 24),
+                            label: const Text(
+                              'Generate QR Code',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1E3A8A),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
                       height: 50,
                       child: ElevatedButton.icon(
                         onPressed: () {
@@ -1185,7 +1254,13 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                         ),
                       ),
                     ),
-          ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
