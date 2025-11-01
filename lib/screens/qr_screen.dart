@@ -409,8 +409,19 @@ class _QrScreenState extends State<QrScreen> {
       height: 56,
       child: ElevatedButton(
         onPressed: () {
-          // TODO: Implement create session action
-          _showSnackBar('Session created successfully!');
+          if (_selectedSubject != null) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => SessionDetailsScreen(
+                  subject: _selectedSubject!,
+                  scheduleTime: '9:00 AM - 10:30 AM',
+                ),
+              ),
+            );
+          } else {
+            _showSnackBar('Please select a schedule first');
+          }
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.blue[900],
@@ -638,6 +649,242 @@ class _QrScreenState extends State<QrScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class SessionDetailsScreen extends StatefulWidget {
+  final String subject;
+  final String scheduleTime;
+
+  const SessionDetailsScreen({
+    super.key,
+    required this.subject,
+    required this.scheduleTime,
+  });
+
+  @override
+  State<SessionDetailsScreen> createState() => _SessionDetailsScreenState();
+}
+
+class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[200],
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Session Details',
+          style: TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: Center(
+        child: Container(
+          margin: const EdgeInsets.all(20),
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: Card(
+            elevation: 8,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Course Title
+                    Text(
+                      widget.subject,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    
+                    // Session Information
+                    _buildInfoRow(
+                      icon: Icons.access_time,
+                      mainText: widget.scheduleTime,
+                      subText: '90 minutes',
+                      iconColor: Colors.blue,
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    _buildInfoRow(
+                      icon: Icons.location_on,
+                      mainText: 'Short Course Laboratory',
+                      subText: 'Originally Room 301',
+                      iconColor: Colors.red,
+                      badge: 'Room Changed',
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    _buildInfoRow(
+                      icon: Icons.play_circle,
+                      mainText: 'Session Active',
+                      subText: 'Status',
+                      iconColor: Colors.green,
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    _buildInfoRow(
+                      icon: Icons.history,
+                      mainText: '9:02 AM',
+                      subText: 'Session Start Time',
+                      iconColor: Colors.orange,
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    _buildInfoRow(
+                      icon: Icons.person,
+                      mainText: 'Jovelyn Comaingking',
+                      subText: 'Instructor',
+                      iconColor: Colors.purple,
+                    ),
+                    
+                    const SizedBox(height: 32),
+                    
+                    // Action Buttons
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          // TODO: Generate QR Code
+                        },
+                        icon: const Icon(Icons.qr_code_2, size: 24),
+                        label: const Text(
+                          'Generate QR Code',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue[900],
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          // TODO: End Session
+                        },
+                        icon: const Icon(Icons.stop_circle_outlined, size: 24),
+                        label: const Text(
+                          'End Session',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow({
+    required IconData icon,
+    required String mainText,
+    required String subText,
+    required Color iconColor,
+    String? badge,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: iconColor.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: iconColor, size: 24),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                mainText,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Text(
+                    subText,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  if (badge != null) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.orange,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        badge,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
