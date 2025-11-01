@@ -64,10 +64,9 @@ class _QrScreenState extends State<QrScreen> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
-              _buildHeader(),
+              Center(child: _buildHeader()),
               const SizedBox(height: 32),
               
               // Assigned Schedule Section
