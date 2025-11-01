@@ -90,19 +90,12 @@ class _QrScreenState extends State<QrScreen> {
 
   Widget _buildHeader() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Container(
+        Image.asset(
+          'lib/images/aclc_logo.png',
           width: 80,
           height: 80,
-          decoration: BoxDecoration(
-            color: Colors.blue[50],
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            Icons.school_rounded,
-            size: 48,
-            color: Colors.blue[900],
-          ),
         ),
         const SizedBox(height: 16),
         const Text(
