@@ -61,48 +61,30 @@ class _QrScreenState extends State<QrScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[200],
       body: SafeArea(
-        child: Center(
-          child: Container(
-            margin: const EdgeInsets.all(20),
-            constraints: const BoxConstraints(maxWidth: 500),
-            child: Card(
-              elevation: 8,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: _buildContent(),
-              ),
-            ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              _buildHeader(),
+              const SizedBox(height: 32),
+              
+              // Assigned Schedule Section
+              _buildAssignedScheduleSection(),
+              const SizedBox(height: 32),
+              
+              // Upcoming Sessions Section
+              _buildUpcomingSessionsSection(),
+              const SizedBox(height: 32),
+              
+              // Create Session Button
+              _buildCreateButton(),
+            ],
           ),
         ),
       ),
       bottomNavigationBar: _buildBottomNav(context),
-    );
-  }
-
-  Widget _buildContent() {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          _buildHeader(),
-          const SizedBox(height: 32),
-          
-          // Assigned Schedule Section
-          _buildAssignedScheduleSection(),
-          const SizedBox(height: 32),
-          
-          // Upcoming Sessions Section
-          _buildUpcomingSessionsSection(),
-          const SizedBox(height: 32),
-          
-          // Create Session Button
-          _buildCreateButton(),
-        ],
-      ),
     );
   }
 
