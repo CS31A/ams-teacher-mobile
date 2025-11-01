@@ -692,15 +692,16 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
                     // Course Title
-                    Text(
-                      widget.subject,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                    Center(
+                      child: Text(
+                        widget.subject,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 32),
@@ -710,7 +711,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                       icon: Icons.access_time,
                       mainText: widget.scheduleTime,
                       subText: '90 minutes',
-                      iconColor: Colors.blue,
+                      iconColor: Colors.black87,
                     ),
                     const SizedBox(height: 20),
                     
@@ -718,7 +719,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                       icon: Icons.location_on,
                       mainText: 'Short Course Laboratory',
                       subText: 'Originally Room 301',
-                      iconColor: Colors.red,
+                      iconColor: Colors.black87,
                       badge: 'Room Changed',
                     ),
                     const SizedBox(height: 20),
@@ -727,7 +728,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                       icon: Icons.play_circle,
                       mainText: 'Session Active',
                       subText: 'Status',
-                      iconColor: Colors.green,
+                      iconColor: Colors.black87,
                     ),
                     const SizedBox(height: 20),
                     
@@ -735,7 +736,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                       icon: Icons.history,
                       mainText: '9:02 AM',
                       subText: 'Session Start Time',
-                      iconColor: Colors.orange,
+                      iconColor: Colors.black87,
                     ),
                     const SizedBox(height: 20),
                     
@@ -743,7 +744,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                       icon: Icons.person,
                       mainText: 'Jovelyn Comaingking',
                       subText: 'Instructor',
-                      iconColor: Colors.purple,
+                      iconColor: Colors.black87,
                     ),
                     
                     const SizedBox(height: 32),
@@ -819,10 +820,10 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.1),
+            color: Colors.grey[200],
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: iconColor, size: 24),
+          child: Icon(icon, color: Colors.black87, size: 24),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -852,7 +853,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colors.orange,
+                        color: Colors.blue[900],
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
