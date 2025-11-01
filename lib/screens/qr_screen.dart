@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:uuid/uuid.dart';
+import 'dart:convert';
 import 'attendance_screen.dart';
 import 'dashboard_screen.dart';
 import 'profile_screen.dart';
@@ -724,6 +727,10 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
   String? _selectedActualRoom;
   String _scheduledRoom = 'Room 301 (Scheduled)';
   String _currentRoom = 'Room 301 (Scheduled)';
+  String? _sessionId;
+  DateTime? _sessionStartTime;
+  String _instructorName = 'Jovelyn Comaingking';
+  final Uuid _uuid = const Uuid();
 
   @override
   void initState() {
@@ -732,6 +739,169 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
   }
   
   bool get _hasRoomChanged => _currentRoom != _scheduledRoom;
+  
+  String _formatTime(DateTime time) {
+    final hour = time.hour;
+    final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+    final period = hour >= 12 ? 'PM' : 'AM';
+    return '${displayHour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')} $period';
+  }
+  
+  void _startSession() {
+    setState(() {
+      _sessionId = _uuid.v4();
+      _sessionStartTime = DateTime.now();
+      if (_selectedActualRoom != null) {
+        _currentRoom = _selectedActualRoom!;
+      }
+    });
+    _showQrCodeModal(context);
+  }
+  
+  String _generateQrData() {
+    final sessionData = {
+      'sessionId': _sessionId ?? _uuid.v4(),
+      'subject': widget.subject,
+      'scheduleTime': widget.scheduleTime,
+      'room': _currentRoom,
+      'instructor': _instructorName,
+      'startTime': _sessionStartTime?.toIso8601String() ?? DateTime.now().toIso8601String(),
+      'status': 'active',
+    };
+    return jsonEncode(sessionData);
+  }
+  
+  void _showQrCodeModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          width: MediaQuery.of(context).size.width * 0.9,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'QR Code',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.black87),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              // QR Code
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: QrImageView(
+                  data: _generateQrData(),
+                  version: QrVersions.auto,
+                  size: 250,
+                  backgroundColor: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Session Details
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildQrDetailRow('Subject', widget.subject),
+                    const SizedBox(height: 8),
+                    _buildQrDetailRow('Room', _currentRoom),
+                    const SizedBox(height: 8),
+                    _buildQrDetailRow('Schedule', widget.scheduleTime),
+                    const SizedBox(height: 8),
+                    _buildQrDetailRow('Instructor', _instructorName),
+                    const SizedBox(height: 8),
+                    _buildQrDetailRow(
+                      'Start Time',
+                      _sessionStartTime?.toString().substring(0, 16) ?? DateTime.now().toString().substring(0, 16),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Close Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue[900],
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text(
+                    'Close',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildQrDetailRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 80,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.black87,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
   @override
   void dispose() {
@@ -815,7 +985,9 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                     
                     _buildInfoRow(
                       icon: Icons.history,
-                      mainText: '9:02 AM',
+                      mainText: _sessionStartTime != null 
+                          ? _formatTime(_sessionStartTime!)
+                          : 'Not started',
                       subText: 'Session Start Time',
                       iconColor: Colors.blue[900]!,
                     ),
@@ -836,11 +1008,15 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                       height: 50,
                       child: ElevatedButton.icon(
                         onPressed: () {
-                          _showStartSessionModal(context);
+                          if (_sessionId == null) {
+                            _showStartSessionModal(context);
+                          } else {
+                            _showQrCodeModal(context);
+                          }
                         },
                         icon: const Icon(Icons.qr_code_2, size: 24),
                         label: const Text(
-                          'View Generate QR Code',
+                          'Generate QR Code',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -1086,7 +1262,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                   child: OutlinedButton(
                     onPressed: () {
                       Navigator.pop(context);
-                      // TODO: Skip & Start session
+                      _startSession();
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.black87,
@@ -1097,7 +1273,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                     child: const Text(
-                      'Skip & Start',
+                      'Skip',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -1110,7 +1286,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.pop(context);
-                      // TODO: Confirm & Start session
+                      _startSession();
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue[900],
@@ -1122,7 +1298,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                       elevation: 0,
                     ),
                     child: const Text(
-                      'Confirm & Start',
+                      'Confirm',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,

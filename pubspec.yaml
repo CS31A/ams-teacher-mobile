@@ -17,6 +17,8 @@ dependencies:
   jwt_decoder: ^2.0.1
   intl: ^0.18.1
   table_calendar: ^3.0.9
+  qr_flutter: ^4.1.0
+  uuid: ^4.0.0
 
 dev_dependencies:
   flutter_test:
