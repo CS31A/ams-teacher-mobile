@@ -281,7 +281,7 @@ class _QrScreenState extends State<QrScreen> {
     return TextField(
       controller: _searchController,
       decoration: InputDecoration(
-        hintText: 'Search schedules...',
+        hintText: 'Search sections...',
         prefixIcon: Icon(Icons.search_rounded, color: Colors.grey[600]),
         filled: true,
         fillColor: Colors.white,
@@ -722,12 +722,16 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
   ];
   
   String? _selectedActualRoom;
+  String _scheduledRoom = 'Room 301 (Scheduled)';
+  String _currentRoom = 'Room 301 (Scheduled)';
 
   @override
   void initState() {
     super.initState();
     _selectedActualRoom = _rooms.first;
   }
+  
+  bool get _hasRoomChanged => _currentRoom != _scheduledRoom;
 
   @override
   void dispose() {
@@ -760,6 +764,16 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
+                    // Logo
+                    Center(
+                      child: Image.asset(
+                        'lib/images/aclc_logo.png',
+                        width: 80,
+                        height: 80,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    
                     // Course Title
                     Center(
                       child: Text(
@@ -778,7 +792,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                       icon: Icons.access_time,
                       mainText: widget.scheduleTime,
                       subText: '90 minutes',
-                      iconColor: Colors.black87,
+                      iconColor: Colors.blue[900]!,
                     ),
                     const SizedBox(height: 20),
                     
@@ -786,8 +800,8 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                       icon: Icons.location_on,
                       mainText: 'Short Course Laboratory',
                       subText: 'Originally Room 301',
-                      iconColor: Colors.black87,
-                      badge: 'Room Changed',
+                      iconColor: Colors.blue[900]!,
+                      badge: _hasRoomChanged ? 'Room Changed' : null,
                     ),
                     const SizedBox(height: 20),
                     
@@ -795,7 +809,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                       icon: Icons.play_circle,
                       mainText: 'Session Active',
                       subText: 'Status',
-                      iconColor: Colors.black87,
+                      iconColor: Colors.green[700]!,
                     ),
                     const SizedBox(height: 20),
                     
@@ -803,7 +817,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                       icon: Icons.history,
                       mainText: '9:02 AM',
                       subText: 'Session Start Time',
-                      iconColor: Colors.black87,
+                      iconColor: Colors.blue[900]!,
                     ),
                     const SizedBox(height: 20),
                     
@@ -811,7 +825,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                       icon: Icons.person,
                       mainText: 'Jovelyn Comaingking',
                       subText: 'Instructor',
-                      iconColor: Colors.black87,
+                      iconColor: Colors.blue[900]!,
                     ),
                     
                     const SizedBox(height: 32),
@@ -826,7 +840,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                         },
                         icon: const Icon(Icons.qr_code_2, size: 24),
                         label: const Text(
-                          'Generate QR Code',
+                          'View Generate QR Code',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -887,10 +901,10 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: Colors.grey[200],
+            color: iconColor.withOpacity(0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: Colors.black87, size: 24),
+          child: Icon(icon, color: iconColor, size: 24),
         ),
         const SizedBox(width: 16),
         Expanded(
