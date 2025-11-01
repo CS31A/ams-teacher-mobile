@@ -1133,129 +1133,156 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                       topRight: Radius.circular(25),
                     ),
                   ),
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 8),
-                        
-                        // Course Title
-                        Center(
-                          child: Text(
-                            widget.subject,
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                    
-                        // Session Information
-                        _buildInfoRow(
-                          icon: Icons.access_time,
-                          mainText: widget.scheduleTime,
-                          subText: '90 minutes',
-                          iconColor: const Color(0xFF1E3A8A),
-                        ),
-                        const SizedBox(height: 20),
-                        
-                        _buildInfoRow(
-                          icon: Icons.location_on,
-                          mainText: 'Short Course Laboratory',
-                          subText: 'Originally Room 301',
-                          iconColor: const Color(0xFF1E3A8A),
-                          badge: _hasRoomChanged ? 'Room Changed' : null,
-                        ),
-                        const SizedBox(height: 20),
-                        
-                        _buildInfoRow(
-                          icon: Icons.play_circle,
-                          mainText: 'Session Active',
-                          subText: 'Status',
-                          iconColor: Colors.green[700]!,
-                        ),
-                        const SizedBox(height: 20),
-                        
-                        _buildInfoRow(
-                          icon: Icons.history,
-                          mainText: _sessionStartTime != null 
-                              ? _formatTime(_sessionStartTime!)
-                              : 'Not started',
-                          subText: 'Session Start Time',
-                          iconColor: const Color(0xFF1E3A8A),
-                        ),
-                        const SizedBox(height: 20),
-                        
-                        _buildInfoRow(
-                          icon: Icons.person,
-                          mainText: 'Jovelyn Comaingking',
-                          subText: 'Instructor',
-                          iconColor: const Color(0xFF1E3A8A),
-                        ),
-                        
-                        const SizedBox(height: 32),
-                        
-                        // Action Buttons
-                        SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              // Start session first if not started
-                              if (_sessionId == null) {
-                                _startSession();
-                              } else {
-                                _showQrCodeModal(context);
-                              }
-                            },
-                            icon: const Icon(Icons.qr_code_2, size: 24),
-                            label: const Text(
-                              'Generate QR Code',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                  child: Stack(
+                    children: [
+                      // Scrollable Content
+                      SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(24, 24, 24, 170),
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 8),
+                            
+                            // Course Title
+                            Center(
+                              child: Text(
+                                widget.subject,
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
                               ),
                             ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF1E3A8A),
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              elevation: 0,
+                            const SizedBox(height: 32),
+                        
+                            // Session Information
+                            _buildInfoRow(
+                              icon: Icons.access_time,
+                              mainText: widget.scheduleTime,
+                              subText: '90 minutes',
+                              iconColor: const Color(0xFF1E3A8A),
                             ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          // TODO: End Session
-                        },
-                        icon: const Icon(Icons.stop_circle_outlined, size: 24),
-                        label: const Text(
-                          'End Session',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
+                            const SizedBox(height: 20),
+                            
+                            _buildInfoRow(
+                              icon: Icons.location_on,
+                              mainText: 'Short Course Laboratory',
+                              subText: 'Originally Room 301',
+                              iconColor: const Color(0xFF1E3A8A),
+                              badge: _hasRoomChanged ? 'Room Changed' : null,
+                            ),
+                            const SizedBox(height: 20),
+                            
+                            _buildInfoRow(
+                              icon: Icons.play_circle,
+                              mainText: 'Session Active',
+                              subText: 'Status',
+                              iconColor: Colors.green[700]!,
+                            ),
+                            const SizedBox(height: 20),
+                            
+                            _buildInfoRow(
+                              icon: Icons.history,
+                              mainText: _sessionStartTime != null 
+                                  ? _formatTime(_sessionStartTime!)
+                                  : 'Not started',
+                              subText: 'Session Start Time',
+                              iconColor: const Color(0xFF1E3A8A),
+                            ),
+                            const SizedBox(height: 20),
+                            
+                            _buildInfoRow(
+                              icon: Icons.person,
+                              mainText: 'Jovelyn Comaingking',
+                              subText: 'Instructor',
+                              iconColor: const Color(0xFF1E3A8A),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                      ],
-                    ),
+                      
+                      // Fixed Buttons at Bottom
+                      Positioned(
+                        bottom: 30,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, -2),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              // Generate QR Code Button
+                              SizedBox(
+                                width: double.infinity,
+                                height: 50,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    // Start session first if not started
+                                    if (_sessionId == null) {
+                                      _startSession();
+                                    } else {
+                                      _showQrCodeModal(context);
+                                    }
+                                  },
+                                  icon: const Icon(Icons.qr_code_2, size: 24),
+                                  label: const Text(
+                                    'Generate QR Code',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF1E3A8A),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              // End Session Button
+                              SizedBox(
+                                width: double.infinity,
+                                height: 50,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    // TODO: End Session
+                                  },
+                                  icon: const Icon(Icons.stop_circle_outlined, size: 24),
+                                  label: const Text(
+                                    'End Session',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
