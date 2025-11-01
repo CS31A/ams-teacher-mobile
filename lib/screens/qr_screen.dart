@@ -507,7 +507,6 @@ class _QrScreenState extends State<QrScreen> {
           borderRadius: BorderRadius.circular(24),
         ),
         child: Container(
-          height: MediaQuery.of(context).size.height * 0.8,
           width: MediaQuery.of(context).size.width * 0.9,
           decoration: BoxDecoration(
             color: Colors.blue[900],
@@ -515,6 +514,7 @@ class _QrScreenState extends State<QrScreen> {
           ),
           padding: EdgeInsets.all(24),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               // Header
               Row(
@@ -536,8 +536,7 @@ class _QrScreenState extends State<QrScreen> {
               ),
               SizedBox(height: 20),
               // Calendar
-              Expanded(
-                child: TableCalendar(
+              TableCalendar(
                   firstDay: DateTime.utc(2020, 1, 1),
                   lastDay: DateTime.utc(2030, 12, 31),
                   focusedDay: _focusedDay,
@@ -635,7 +634,6 @@ class _QrScreenState extends State<QrScreen> {
                     CalendarFormat.week: 'Week',
                   },
                 ),
-              ),
             ],
           ),
         ),
