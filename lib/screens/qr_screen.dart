@@ -716,7 +716,6 @@ class SessionDetailsScreen extends StatefulWidget {
 }
 
 class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
-  final TextEditingController _attendanceCutoffController = TextEditingController();
   final List<String> _rooms = [
     'Room 301 (Scheduled)',
     'Room 302',
@@ -724,7 +723,6 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     'Short Course Laboratory',
   ];
   
-  String? _selectedActualRoom;
   String _scheduledRoom = 'Room 301 (Scheduled)';
   String _currentRoom = 'Room 301 (Scheduled)';
   String? _sessionId;
@@ -735,7 +733,6 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedActualRoom = _rooms.first;
   }
   
   bool get _hasRoomChanged => _currentRoom != _scheduledRoom;
@@ -751,9 +748,6 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     setState(() {
       _sessionId = _uuid.v4();
       _sessionStartTime = DateTime.now();
-      if (_selectedActualRoom != null) {
-        _currentRoom = _selectedActualRoom!;
-      }
     });
     _showQrCodeModal(context);
   }
@@ -845,6 +839,32 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                 ),
               ),
               const SizedBox(height: 20),
+              // Edit Room Button
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    _showEditRoomModal(context);
+                  },
+                  icon: const Icon(Icons.edit, size: 20),
+                  label: const Text(
+                    'Edit Room',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.blue[900],
+                    side: BorderSide(color: Colors.blue[900]!),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
               // Close Button
               SizedBox(
                 width: double.infinity,
@@ -903,9 +923,102 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     );
   }
 
+  void _showEditRoomModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        title: const Text(
+          'Change Room',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        content: Container(
+          width: MediaQuery.of(context).size.width * 0.8,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Select a room',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: DropdownButton<String>(
+                  value: _currentRoom,
+                  isExpanded: true,
+                  underline: const SizedBox(),
+                  items: _rooms.map((room) => DropdownMenuItem<String>(
+                    value: room,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        room,
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  )).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _currentRoom = value!;
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue[900],
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Save',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
-    _attendanceCutoffController.dispose();
     super.dispose();
   }
 
@@ -1008,8 +1121,9 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                       height: 50,
                       child: ElevatedButton.icon(
                         onPressed: () {
+                          // Start session first if not started
                           if (_sessionId == null) {
-                            _showStartSessionModal(context);
+                            _startSession();
                           } else {
                             _showQrCodeModal(context);
                           }
@@ -1132,186 +1246,4 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     );
   }
 
-  void _showStartSessionModal(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-      ),
-      builder: (context) => Container(
-        padding: EdgeInsets.only(
-          left: 24,
-          right: 24,
-          top: 24,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 24),
-            // Title
-            const Text(
-              'Start Session',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Confirm session details before starting.',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 24),
-            // Actual Room Field
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Actual Room (Optional)',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: DropdownButton<String>(
-                    value: _selectedActualRoom,
-                    isExpanded: true,
-                    underline: const SizedBox(),
-                    icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                    items: _rooms.map((room) => DropdownMenuItem<String>(
-                      value: room,
-                      child: Text(room),
-                    )).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedActualRoom = value;
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // Attendance Cutoff Field
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Attendance Cutoff (Optional)',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _attendanceCutoffController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    hintText: 'e.g., 15',
-                    suffixText: 'minutes',
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.blue, width: 2),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            // Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _startSession();
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.black87,
-                      side: BorderSide(color: Colors.grey[300]!),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: const Text(
-                      'Skip',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _startSession();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[900],
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Confirm',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
 }
