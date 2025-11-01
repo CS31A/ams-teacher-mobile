@@ -13,10 +13,10 @@ class QrScreen extends StatefulWidget {
 
 class _QrScreenState extends State<QrScreen> {
   // Form state
-  final TextEditingController _scheduleController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
   
   bool _scheduleSelected = false;
+  String? _selectedSubject;
   
   // Mock schedules for UI
   final List<String> _schedules = [
@@ -51,7 +51,6 @@ class _QrScreenState extends State<QrScreen> {
 
   @override
   void dispose() {
-    _scheduleController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -133,51 +132,37 @@ class _QrScreenState extends State<QrScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        Stack(
-          children: [
-            TextField(
-              controller: _scheduleController,
-              readOnly: true,
-              onTap: () => _showSchedulePicker(),
-              decoration: InputDecoration(
-                hintText: 'Select schedule',
-                filled: true,
-                fillColor: Colors.white,
-                suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.blue, width: 2),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              ),
-            ),
-            if (_scheduleSelected)
-              Positioned(
-                right: 50,
-                top: 12,
-                child: Container(
-                  width: 24,
-                  height: 24,
-                  decoration: const BoxDecoration(
-                    color: Colors.blue,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.check,
-                    color: Colors.white,
-                    size: 16,
-                  ),
-                ),
-              ),
-          ],
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: DropdownButton<String>(
+            value: _selectedSubject,
+            hint: const Text('Select schedule'),
+            isExpanded: true,
+            underline: const SizedBox(),
+            icon: _scheduleSelected
+                ? Container(
+                    width: 40,
+                    height: 40,
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.check_circle, color: Colors.blue),
+                  )
+                : const Icon(Icons.keyboard_arrow_down_rounded),
+            items: _schedules.map((schedule) => DropdownMenuItem<String>(
+              value: schedule,
+              child: Text(schedule),
+            )).toList(),
+            onChanged: (value) {
+              setState(() {
+                _selectedSubject = value;
+                _scheduleSelected = value != null;
+              });
+            },
+          ),
         ),
         const SizedBox(height: 12),
         Row(
@@ -324,50 +309,6 @@ class _QrScreenState extends State<QrScreen> {
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
-        ),
-      ),
-    );
-  }
-
-  void _showSchedulePicker() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Select Schedule',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            ..._schedules.map((schedule) => ListTile(
-              title: Text(schedule),
-              onTap: () {
-                setState(() {
-                  _scheduleController.text = schedule;
-                  _scheduleSelected = true;
-                });
-                Navigator.pop(context);
-              },
-            )),
-          ],
         ),
       ),
     );
