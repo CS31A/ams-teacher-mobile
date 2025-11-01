@@ -531,10 +531,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             } else if (index == 2) {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => QrScreen(
-                    currentClass: currentClass,
-                    currentClassEnd: currentClassEnd,
-                  ),
+                  builder: (context) => const QrScreen(),
                 ),
               );
             } else if (index == 3) {
