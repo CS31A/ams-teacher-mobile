@@ -689,21 +689,11 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
         ),
         centerTitle: true,
       ),
-      body: Center(
-        child: Container(
-          margin: const EdgeInsets.all(20),
-          constraints: const BoxConstraints(maxWidth: 500),
-          child: Card(
-            elevation: 8,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
                     // Course Title
                     Text(
                       widget.subject,
@@ -810,11 +800,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                         ),
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+          ],
         ),
       ),
     );
