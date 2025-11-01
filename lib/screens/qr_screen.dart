@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:table_calendar/table_calendar.dart';
 import 'attendance_screen.dart';
 import 'dashboard_screen.dart';
 import 'profile_screen.dart';
@@ -19,6 +20,11 @@ class _QrScreenState extends State<QrScreen> {
   
   String? _selectedSubject;
   bool _isDropdownOpen = false;
+  
+  // Calendar state
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _selectedDay;
+  CalendarFormat _calendarFormat = CalendarFormat.month;
   
   // Mock schedules for UI
   final List<String> _schedules = [
@@ -85,10 +91,6 @@ class _QrScreenState extends State<QrScreen> {
   OverlayEntry _createOverlayEntry() {
     return OverlayEntry(
       builder: (context) {
-        // Get the render box after the overlay is built
-        final renderBox = context.findRenderObject() as RenderBox?;
-        final size = renderBox?.size ?? const Size(0, 0);
-        
         return GestureDetector(
           onTap: _closeDropdown,
           behavior: HitTestBehavior.translucent,
@@ -277,10 +279,8 @@ class _QrScreenState extends State<QrScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        GestureDetector(
-          onTap: () {
-            // TODO: Navigate to calendar view
-          },
+        InkWell(
+          onTap: () => _showCalendarModal(context),
           child: Row(
             children: [
               Icon(Icons.calendar_today_rounded, size: 18, color: Colors.grey[600]),
@@ -495,6 +495,133 @@ class _QrScreenState extends State<QrScreen> {
             label: 'Profile',
           ),
         ],
+      ),
+    );
+  }
+
+  void _showCalendarModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.9,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        child: Column(
+          children: [
+            // Handle
+            Container(
+              margin: EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            SizedBox(height: 20),
+            // Header
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Full Calendar',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue[900],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(Icons.close, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 20),
+            // Calendar
+            Expanded(
+              child: Container(
+                margin: EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: TableCalendar(
+                  firstDay: DateTime.utc(2020, 1, 1),
+                  lastDay: DateTime.utc(2030, 12, 31),
+                  focusedDay: _focusedDay,
+                  selectedDayPredicate: (day) {
+                    return isSameDay(_selectedDay, day);
+                  },
+                  onDaySelected: (selectedDay, focusedDay) {
+                    setState(() {
+                      _selectedDay = selectedDay;
+                      _focusedDay = focusedDay;
+                    });
+                  },
+                  onPageChanged: (focusedDay) {
+                    setState(() {
+                      _focusedDay = focusedDay;
+                    });
+                  },
+                  calendarFormat: _calendarFormat,
+                  onFormatChanged: (format) {
+                    setState(() {
+                      _calendarFormat = format;
+                    });
+                  },
+                  headerStyle: HeaderStyle(
+                    formatButtonVisible: true,
+                    titleCentered: true,
+                    formatButtonShowsNext: false,
+                    formatButtonDecoration: BoxDecoration(
+                      color: Colors.blue[900],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    formatButtonTextStyle: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    leftChevronIcon: Icon(
+                      Icons.chevron_left,
+                      color: Colors.blue[900],
+                    ),
+                    rightChevronIcon: Icon(
+                      Icons.chevron_right,
+                      color: Colors.blue[900],
+                    ),
+                  ),
+                  calendarStyle: CalendarStyle(
+                    todayDecoration: BoxDecoration(
+                      color: Colors.blue[900]!.withOpacity(0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    selectedDecoration: BoxDecoration(
+                      color: Colors.blue[900],
+                      shape: BoxShape.circle,
+                    ),
+                    markerDecoration: BoxDecoration(
+                      color: Colors.blue[900],
+                      shape: BoxShape.circle,
+                    ),
+                    outsideDaysVisible: false,
+                  ),
+                  availableCalendarFormats: const {
+                    CalendarFormat.month: 'Month',
+                    CalendarFormat.week: 'Week',
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
