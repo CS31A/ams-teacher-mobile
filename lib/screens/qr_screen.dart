@@ -14,9 +14,11 @@ class QrScreen extends StatefulWidget {
 class _QrScreenState extends State<QrScreen> {
   // Form state
   final TextEditingController _searchController = TextEditingController();
+  final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
   
-  bool _scheduleSelected = false;
   String? _selectedSubject;
+  bool _isDropdownOpen = false;
   
   // Mock schedules for UI
   final List<String> _schedules = [
@@ -52,7 +54,113 @@ class _QrScreenState extends State<QrScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _closeDropdown();
     super.dispose();
+  }
+
+  void _toggleDropdown() {
+    if (_isDropdownOpen) {
+      _closeDropdown();
+    } else {
+      _openDropdown();
+    }
+  }
+
+  void _openDropdown() {
+    _overlayEntry = _createOverlayEntry();
+    Overlay.of(context).insert(_overlayEntry!);
+    setState(() {
+      _isDropdownOpen = true;
+    });
+  }
+
+  void _closeDropdown() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+    setState(() {
+      _isDropdownOpen = false;
+    });
+  }
+
+  OverlayEntry _createOverlayEntry() {
+    return OverlayEntry(
+      builder: (context) {
+        // Get the render box after the overlay is built
+        final renderBox = context.findRenderObject() as RenderBox?;
+        final size = renderBox?.size ?? const Size(0, 0);
+        
+        return GestureDetector(
+          onTap: _closeDropdown,
+          behavior: HitTestBehavior.translucent,
+          child: Stack(
+            children: [
+              Positioned(
+                width: MediaQuery.of(context).size.width - 48,
+                child: CompositedTransformFollower(
+                  link: _layerLink,
+                  showWhenUnlinked: false,
+                  offset: const Offset(0, 60),
+                  child: Material(
+                    elevation: 4,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      constraints: const BoxConstraints(maxHeight: 240),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: ListView.builder(
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        itemCount: _schedules.length,
+                        itemBuilder: (context, index) {
+                          final schedule = _schedules[index];
+                          final isSelected = _selectedSubject == schedule;
+                          return InkWell(
+                            onTap: () {
+                              setState(() {
+                                _selectedSubject = schedule;
+                              });
+                              _closeDropdown();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected ? Colors.grey[100] : Colors.white,
+                                border: index < _schedules.length - 1
+                                    ? Border(
+                                        bottom: BorderSide(
+                                          color: Colors.grey[200]!,
+                                          width: 1,
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                              child: Text(
+                                schedule,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.black87,
+                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -78,6 +186,7 @@ class _QrScreenState extends State<QrScreen> {
               
               // Create Session Button
               _buildCreateButton(),
+              const SizedBox(height: 100),
             ],
           ),
         ),
@@ -132,52 +241,60 @@ class _QrScreenState extends State<QrScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[300]!),
-          ),
-          child: DropdownButton<String>(
-            value: _selectedSubject,
-            hint: const Text('Select schedule'),
-            isExpanded: true,
-            underline: const SizedBox(),
-            icon: _scheduleSelected
-                ? Container(
-                    width: 40,
-                    height: 40,
-                    alignment: Alignment.center,
-                    child: const Icon(Icons.check_circle, color: Colors.blue),
-                  )
-                : const Icon(Icons.keyboard_arrow_down_rounded),
-            items: _schedules.map((schedule) => DropdownMenuItem<String>(
-              value: schedule,
-              child: Text(schedule),
-            )).toList(),
-            onChanged: (value) {
-              setState(() {
-                _selectedSubject = value;
-                _scheduleSelected = value != null;
-              });
-            },
+        CompositedTransformTarget(
+          link: _layerLink,
+          child: GestureDetector(
+            onTap: _toggleDropdown,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.grey[300]!,
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _selectedSubject ?? 'Select schedule',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: _selectedSubject == null ? Colors.grey[600] : Colors.black87,
+                    ),
+                  ),
+                  Icon(
+                    _isDropdownOpen
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    color: Colors.grey[700],
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Icon(Icons.calendar_today_rounded, size: 18, color: Colors.grey[600]),
-            const SizedBox(width: 6),
-            Text(
-              'View Full Calendar',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.blue[900],
-                fontWeight: FontWeight.w600,
+        GestureDetector(
+          onTap: () {
+            // TODO: Navigate to calendar view
+          },
+          child: Row(
+            children: [
+              Icon(Icons.calendar_today_rounded, size: 18, color: Colors.grey[600]),
+              const SizedBox(width: 6),
+              Text(
+                'View Full Calendar',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.blue[900],
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
