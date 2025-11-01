@@ -500,59 +500,43 @@ class _QrScreenState extends State<QrScreen> {
   }
 
   void _showCalendarModal(BuildContext context) {
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.9,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
         ),
-        child: Column(
-          children: [
-            // Handle
-            Container(
-              margin: EdgeInsets.only(top: 12),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            SizedBox(height: 20),
-            // Header
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
+        child: Container(
+          height: MediaQuery.of(context).size.height * 0.8,
+          width: MediaQuery.of(context).size.width * 0.9,
+          decoration: BoxDecoration(
+            color: Colors.blue[900],
+            borderRadius: BorderRadius.circular(24),
+          ),
+          padding: EdgeInsets.all(24),
+          child: Column(
+            children: [
+              // Header
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Full Calendar',
+                    'Calendar',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue[900],
+                      color: Colors.white,
                     ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: Icon(Icons.close, color: Colors.grey[600]),
+                    icon: Icon(Icons.close, color: Colors.white),
                   ),
                 ],
               ),
-            ),
-            SizedBox(height: 20),
-            // Calendar
-            Expanded(
-              child: Container(
-                margin: EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                ),
+              SizedBox(height: 20),
+              // Calendar
+              Expanded(
                 child: TableCalendar(
                   firstDay: DateTime.utc(2020, 1, 1),
                   lastDay: DateTime.utc(2030, 12, 31),
@@ -565,6 +549,7 @@ class _QrScreenState extends State<QrScreen> {
                       _selectedDay = selectedDay;
                       _focusedDay = focusedDay;
                     });
+                    Navigator.pop(context);
                   },
                   onPageChanged: (focusedDay) {
                     setState(() {
@@ -582,36 +567,68 @@ class _QrScreenState extends State<QrScreen> {
                     titleCentered: true,
                     formatButtonShowsNext: false,
                     formatButtonDecoration: BoxDecoration(
-                      color: Colors.blue[900],
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     formatButtonTextStyle: TextStyle(
+                      color: Colors.blue[900],
+                      fontWeight: FontWeight.bold,
+                    ),
+                    titleTextStyle: TextStyle(
                       color: Colors.white,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                     leftChevronIcon: Icon(
                       Icons.chevron_left,
-                      color: Colors.blue[900],
+                      color: Colors.white,
                     ),
                     rightChevronIcon: Icon(
                       Icons.chevron_right,
-                      color: Colors.blue[900],
+                      color: Colors.white,
+                    ),
+                  ),
+                  daysOfWeekStyle: DaysOfWeekStyle(
+                    weekdayStyle: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    weekendStyle: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                   calendarStyle: CalendarStyle(
+                    defaultTextStyle: TextStyle(
+                      color: Colors.white,
+                    ),
+                    weekendTextStyle: TextStyle(
+                      color: Colors.white,
+                    ),
                     todayDecoration: BoxDecoration(
-                      color: Colors.blue[900]!.withOpacity(0.3),
+                      color: Colors.white.withOpacity(0.3),
                       shape: BoxShape.circle,
                     ),
                     selectedDecoration: BoxDecoration(
-                      color: Colors.blue[900],
+                      color: Colors.white,
                       shape: BoxShape.circle,
                     ),
                     markerDecoration: BoxDecoration(
-                      color: Colors.blue[900],
+                      color: Colors.white,
                       shape: BoxShape.circle,
                     ),
+                    selectedTextStyle: TextStyle(
+                      color: Colors.blue[900],
+                      fontWeight: FontWeight.bold,
+                    ),
+                    todayTextStyle: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                     outsideDaysVisible: false,
+                    outsideTextStyle: TextStyle(
+                      color: Colors.white.withOpacity(0.3),
+                    ),
                   ),
                   availableCalendarFormats: const {
                     CalendarFormat.month: 'Month',
@@ -619,8 +636,8 @@ class _QrScreenState extends State<QrScreen> {
                   },
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
