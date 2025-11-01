@@ -249,32 +249,27 @@ class _QrScreenState extends State<QrScreen> {
 
   Widget _buildHeader() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Icon(Icons.arrow_back, color: Colors.black87),
-            const Expanded(
-              child: Center(
-                child: Text(
-                  'Create Session',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 24),
-          ],
+        Image.asset(
+          'lib/images/aclc_logo.png',
+          width: 80,
+          height: 80,
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'Create Session',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
         ),
         const SizedBox(height: 8),
         Text(
           'Select a schedule to create a class session.',
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 16,
             color: Colors.grey[600],
           ),
         ),
