@@ -772,27 +772,39 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
         ),
+        elevation: 8,
         child: Container(
           padding: const EdgeInsets.all(24),
           width: MediaQuery.of(context).size.width * 0.9,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Stack(
+                alignment: Alignment.center,
                 children: [
                   const Text(
                     'QR Code',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: Colors.white,
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.black87),
-                    onPressed: () => Navigator.pop(context),
+                  Positioned(
+                    right: 0,
+                    child: IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
                   ),
                 ],
               ),
@@ -817,7 +829,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: Colors.white.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -855,8 +867,8 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.blue[900],
-                    side: BorderSide(color: Colors.blue[900]!),
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white, width: 2),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -871,12 +883,13 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue[900],
-                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF1E3A8A),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 14),
+                    elevation: 0,
                   ),
                   child: const Text(
                     'Close',
@@ -904,7 +917,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
             label,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey[600],
+              color: Colors.white.withOpacity(0.8),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -914,7 +927,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
             value,
             style: const TextStyle(
               fontSize: 14,
-              color: Colors.black87,
+              color: Colors.white,
               fontWeight: FontWeight.bold,
             ),
           ),
