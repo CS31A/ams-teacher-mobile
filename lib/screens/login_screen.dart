@@ -1,24 +1,21 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
-import '../services/storage_service.dart';
-import 'dashboard_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/login_provider.dart';
+import '../providers/auth_provider.dart';
+import '../utils/app_router.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _apiService = ApiService();
-  bool _isLoading = false;
-  bool _isPasswordVisible = false;
-  String? _errorMessage;
 
   @override
   void dispose() {
@@ -27,90 +24,22 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _handleLogin() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final response = await _apiService.login(
-        _usernameController.text.trim(),
-        _passwordController.text,
-      );
-
-      print('📦 Login Response: $response');
-
-      if (response['success'] == true && response['accessToken'] != null) {
-        // Save tokens first
-        await StorageService.saveTokens(
-          response['accessToken'] as String,
-          response['refreshToken'] as String? ?? '',
-        );
-        
-        print('✅ Tokens saved, fetching instructor profile...');
-        
-        // Now fetch instructor profile to get the instructor ID
-        try {
-          final profileResponse = await _apiService.getInstructorProfile();
-          
-          print('📦 Profile Response: $profileResponse');
-          
-          if (profileResponse['success'] == true && profileResponse['data'] != null) {
-            final profileData = profileResponse['data'];
-            
-            // Extract instructor ID from profile and convert to String
-            String? instructorId;
-            if (profileData['id'] != null) {
-              instructorId = profileData['id'].toString();
-            } else if (profileData['Id'] != null) {
-              instructorId = profileData['Id'].toString();
-            }
-            
-            if (instructorId != null) {
-              await StorageService.saveInstructorId(instructorId);
-              print('✅ Instructor ID saved: $instructorId');
-            } else {
-              print('⚠️ WARNING: No instructor ID in profile!');
-            }
-          }
-        } catch (profileError) {
-          print('⚠️ Failed to fetch profile: $profileError');
-          // Continue anyway, sections will load via JWT token
-        }
-        
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => const DashboardScreen(),
-            ),
-          );
-        }
-      } else {
-        setState(() {
-          _errorMessage = response['message'] as String? ?? 'Login failed';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Unable to connect to server. Please check your internet connection.';
-      });
-      print('Login error: $e');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final loginState = ref.watch(loginProvider);
+
+    // Listen to auth state changes to navigate on successful login
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (next.isAuthenticated && !next.isLoading && mounted) {
+        // Small delay to ensure state is properly updated
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) {
+            AppRouter.toDashboard(context, replace: true);
+          }
+        });
+      }
+    });
+
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -198,10 +127,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(height: 20),
                               
                               // Password Field
-                              _buildPasswordField(),
+                              _buildPasswordField(loginState),
                               
                               // Error Message
-                              if (_errorMessage != null) ...[
+                              if (loginState.errorMessage != null) ...[
                                 const SizedBox(height: 16),
                                 Container(
                                   padding: const EdgeInsets.all(12),
@@ -218,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
-                                          _errorMessage!,
+                                          loginState.errorMessage!,
                                           style: TextStyle(
                                             color: Colors.red[200],
                                             fontWeight: FontWeight.w500,
@@ -233,7 +162,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(height: 32),
                               
                               // Login Button
-                              _buildLoginButton(),
+                              _buildLoginButton(loginState),
                             ],
                           ),
                         ),
@@ -247,6 +176,27 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    await ref.read(loginProvider.notifier).login(
+      _usernameController.text.trim(),
+      _passwordController.text,
+    );
+
+    // Check auth state after login attempt
+    final authState = ref.read(authProvider);
+    if (authState.isAuthenticated && mounted) {
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          AppRouter.toDashboard(context, replace: true);
+        }
+      });
+    }
   }
 
   Widget _buildLogo() {
@@ -317,10 +267,10 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildPasswordField() {
+  Widget _buildPasswordField(LoginState loginState) {
     return TextFormField(
       controller: _passwordController,
-      obscureText: !_isPasswordVisible,
+      obscureText: !loginState.isPasswordVisible,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: 'Password',
@@ -333,15 +283,13 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         suffixIcon: IconButton(
           icon: Icon(
-            _isPasswordVisible
+            loginState.isPasswordVisible
                 ? Icons.visibility
                 : Icons.visibility_off,
             color: Colors.white,
           ),
           onPressed: () {
-            setState(() {
-              _isPasswordVisible = !_isPasswordVisible;
-            });
+            ref.read(loginProvider.notifier).togglePasswordVisibility();
           },
         ),
         filled: true,
@@ -391,7 +339,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildLoginButton() {
+  Widget _buildLoginButton(LoginState loginState) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(15),
       child: BackdropFilter(
@@ -421,7 +369,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ],
           ),
           child: ElevatedButton(
-            onPressed: _isLoading ? null : _handleLogin,
+            onPressed: loginState.isLoading ? null : _handleLogin,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.transparent,
               shadowColor: Colors.transparent,
@@ -429,7 +377,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 borderRadius: BorderRadius.circular(15),
               ),
             ),
-            child: _isLoading
+            child: loginState.isLoading
                 ? const SizedBox(
                     height: 24,
                     width: 24,
