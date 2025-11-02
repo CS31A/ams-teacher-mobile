@@ -44,7 +44,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final response = await _apiService.getInstructorProfile();
       
       if (response['success'] == true && response['data'] != null) {
-        final profile = InstructorProfile.fromJson(response['data']);
+        final data = response['data'] as Map<String, dynamic>;
+        
+        // Extract instructorProfile from nested structure
+        final instructorProfileData = data['instructorProfile'] as Map<String, dynamic>?;
+        
+        if (instructorProfileData == null) {
+          setState(() {
+            _errorMessage = 'Instructor profile not found';
+            _isLoading = false;
+          });
+          return;
+        }
+        
+        // Merge top-level user data with nested instructorProfile data
+        // The instructorProfile has: id, firstname, lastname, createdAt, updatedAt
+        // The top level has: userId, username, email, role, createdAt, updatedAt
+        final mergedProfileData = {
+          ...instructorProfileData,
+          'email': data['email'], // Use email from top level
+          'userId': data['userId'], // Add userId from top level
+          'isDeleted': false, // Default value
+          'deletedAt': null, // Default value
+        };
+        
+        final profile = InstructorProfile.fromJson(mergedProfileData);
         setState(() {
           _profile = profile;
           _firstnameController.text = profile.firstname ?? '';
@@ -104,7 +128,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Logo
+              // ACLC Logo
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
@@ -122,19 +146,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   'lib/images/aclc_logo.png',
                   width: 40,
                   height: 40,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.logout_rounded,
-                  color: Colors.white,
-                  size: 40,
                 ),
               ),
               const SizedBox(height: 20),
@@ -300,17 +311,57 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isSaving = true);
 
     try {
+      final newFirstname = _firstnameController.text.trim();
+      final newLastname = _lastnameController.text.trim();
+      final newEmail = _emailController.text.trim();
+      
+      print('📝 Saving profile changes:');
+      print('  - Firstname: ${_profile!.firstname} → $newFirstname');
+      print('  - Lastname: ${_profile!.lastname} → $newLastname');
+      print('  - Email: ${_profile!.email} → $newEmail');
+      
+      // Update profile (firstname, lastname, email)
       final response = await _apiService.updateInstructorProfile(
         instructorId: _profile!.id,
-        email: _emailController.text.trim(),
-        firstname: _firstnameController.text.trim().isEmpty ? null : _firstnameController.text.trim(),
-        lastname: _lastnameController.text.trim().isEmpty ? null : _lastnameController.text.trim(),
+        firstname: newFirstname.isEmpty ? null : newFirstname,
+        lastname: newLastname.isEmpty ? null : newLastname,
+        email: newEmail.isEmpty ? null : newEmail,
       );
 
       if (!mounted) return;
 
       if (response['success'] == true) {
-        await _loadProfile();
+        print('✅ Profile updated successfully');
+        print('📊 Response data: ${response['data']}');
+        
+        // The response['data'] contains the updatedProfile with nested instructorProfile
+        // Parse the new profile structure and update the UI
+        final updatedProfileData = response['data'] as Map<String, dynamic>?;
+        if (updatedProfileData != null) {
+          // Extract instructorProfile from nested structure
+          final instructorProfileData = updatedProfileData['instructorProfile'] as Map<String, dynamic>?;
+          
+          if (instructorProfileData != null) {
+            // Merge top-level user data with nested instructorProfile data
+            final mergedProfileData = {
+              ...instructorProfileData,
+              'email': updatedProfileData['email'], // Use email from top level
+              'userId': updatedProfileData['userId'], // Add userId from top level
+              'isDeleted': false, // Default value
+              'deletedAt': null, // Default value
+            };
+            
+            final updatedProfile = InstructorProfile.fromJson(mergedProfileData);
+            setState(() {
+              _profile = updatedProfile;
+              _firstnameController.text = updatedProfile.firstname ?? '';
+              _lastnameController.text = updatedProfile.lastname ?? '';
+              _emailController.text = updatedProfile.email;
+            });
+          }
+        }
+        
+        if (!mounted) return;
         Navigator.pop(context);
         _showSuccessModal();
       } else {
@@ -511,7 +562,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildEditModal() {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
+      height: MediaQuery.of(context).size.height * 0.95,
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
@@ -532,10 +583,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Expanded(
             child: SingleChildScrollView(
               padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
                 left: 20,
                 right: 20,
-                top: 20,
+                top: 16,
               ),
               child: Form(
                 key: _formKey,
@@ -561,33 +612,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         child: Image.asset(
                           'lib/images/aclc_logo.png',
-                          width: 45,
-                          height: 45,
+                          width: 40,
+                          height: 40,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     const Center(
                       child: Text(
                         'Edit Profile',
                         style: TextStyle(
-                          fontSize: 26,
+                          fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF1E3A8A),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Center(
                       child: Text(
                         'Update your personal information',
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: 14,
                           color: Colors.grey[600],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
                     
                     _buildTextField(
                       controller: _firstnameController,
@@ -605,7 +656,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     
                     _buildTextField(
                       controller: _lastnameController,
@@ -623,37 +674,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     
                     _buildTextField(
                       controller: _emailController,
                       label: 'Email Address',
-                      hint: 'Enter your email',
+                      hint: 'Enter your email address',
                       keyboardType: TextInputType.emailAddress,
                       validator: (v) {
-                        if (v == null || v.trim().isEmpty) return 'Email is required';
-                        final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-                        return emailRegex.hasMatch(v) ? null : 'Enter a valid email';
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Email is required';
+                        }
+                        // Basic email validation
+                        final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+                        if (!emailRegex.hasMatch(v.trim())) {
+                          return 'Please enter a valid email address';
+                        }
+                        return null;
                       },
                     ),
                     
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
                     
                     SizedBox(
                       width: double.infinity,
-                      height: 54,
+                      height: 50,
                       child: ElevatedButton(
                         onPressed: _isSaving ? null : _save,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1E3A8A),
                           foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           elevation: 0,
                         ),
                         child: _isSaving
                             ? const SizedBox(
-                                width: 24,
-                                height: 24,
+                                width: 22,
+                                height: 22,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2.5,
                                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
@@ -663,26 +720,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 'Save Changes',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 17,
+                                  fontSize: 16,
                                 ),
                               ),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     SizedBox(
                       width: double.infinity,
-                      height: 54,
+                      height: 50,
                       child: OutlinedButton(
                         onPressed: () => Navigator.pop(context),
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Color(0xFF1E3A8A), width: 2),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         child: const Text(
                           'Cancel',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 17,
+                            fontSize: 16,
                             color: Color(0xFF1E3A8A),
                           ),
                         ),
@@ -704,6 +761,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required String hint,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    bool enabled = true,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -711,45 +769,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Text(
           label,
           style: const TextStyle(
-            fontSize: 15,
+            fontSize: 14,
             fontWeight: FontWeight.w600,
             color: Color(0xFF1E3A8A),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
-          style: const TextStyle(fontSize: 16),
+          enabled: enabled,
+          style: TextStyle(
+            fontSize: 15,
+            color: enabled ? Colors.black : Colors.grey[600],
+          ),
           decoration: InputDecoration(
             hintText: hint,
+            hintStyle: const TextStyle(fontSize: 14),
             filled: true,
-            fillColor: const Color(0xFFF8FAFC),
+            fillColor: enabled ? const Color(0xFFF8FAFC) : Colors.grey[100],
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Color(0xFF1E3A8A), width: 2),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Colors.red, width: 1.5),
             ),
             focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Colors.red, width: 2),
             ),
             errorStyle: const TextStyle(
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w500,
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           ),
           validator: validator,
         ),

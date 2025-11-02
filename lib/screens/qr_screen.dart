@@ -1,184 +1,216 @@
-import 'dart:ui';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:table_calendar/table_calendar.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:uuid/uuid.dart';
+import 'dart:convert';
 import 'attendance_screen.dart';
 import 'dashboard_screen.dart';
 import 'profile_screen.dart';
 import 'sections_screen.dart';
 
 class QrScreen extends StatefulWidget {
-  final Map<String, dynamic>? currentClass;
-  final DateTime? currentClassEnd;
-  
-  const QrScreen({
-    super.key,
-    this.currentClass,
-    this.currentClassEnd,
-  });
+  const QrScreen({super.key});
 
   @override
   State<QrScreen> createState() => _QrScreenState();
 }
 
-class _QrScreenState extends State<QrScreen> with SingleTickerProviderStateMixin {
-  // Session state
-  bool _sessionStarted = false;
-  Duration _classTimeLeft = Duration.zero;
-  
-  // Animation
-  late AnimationController _animationController;
-  
+class _QrScreenState extends State<QrScreen> {
   // Form state
-  final TextEditingController _roomController = TextEditingController();
-  final FocusNode _roomFocusNode = FocusNode();
-  List<String> _filteredRooms = [];
-  bool _showRoomSuggestions = false;
+  final TextEditingController _searchController = TextEditingController();
   
-  final List<String> _subjects = <String>[
-    'Select Subject',
-    'Mathematics 101',
-    'Science 201',
-    'History 301',
+  String? _selectedSchedule;
+  String _viewMode = 'list'; // 'list' or 'grid'
+  
+  // Calendar state
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _selectedDay;
+  CalendarFormat _calendarFormat = CalendarFormat.month;
+  
+  // Mock schedules for UI
+  final List<Map<String, dynamic>> _schedules = [
+    {
+      'code': 'CS11A',
+      'name': 'Computing Programming 1',
+      'days': 'Monday, Thursday',
+      'time': '7:30 AM - 10:30 AM',
+    },
+    {
+      'code': 'CS21A',
+      'name': 'Data Structures',
+      'days': 'Mon, Thu',
+      'time': '10:30 AM - 12:30 PM',
+    },
+    {
+      'code': 'IT21B',
+      'name': 'Introduction to Programming',
+      'days': 'Tue, Fri',
+      'time': '12:30 PM - 3:30 PM',
+    },
   ];
-  String _selectedSubject = 'Select Subject';
-
-  int _startHour = 9;
-  int _startMinute = 15;
-  int _endHour = 10;
-  int _endMinute = 15;
-
-  bool _showResult = false;
-  
-  // Generate all available rooms
-  List<String> _getAllRooms() {
-    List<String> rooms = [];
-    // 100 series (101-110)
-    for (int i = 101; i <= 110; i++) {
-      rooms.add(i.toString());
-    }
-    // 200 series (201-210)
-    for (int i = 201; i <= 210; i++) {
-      rooms.add(i.toString());
-    }
-    // 300 series (301-310)
-    for (int i = 301; i <= 310; i++) {
-      rooms.add(i.toString());
-    }
-    // SLAB rooms
-    for (int i = 1; i <= 5; i++) {
-      rooms.add('SLAB $i');
-    }
-    return rooms;
-  }
-
-  // Validation method to check if all fields are filled
-  bool get _isFormValid {
-    return _selectedSubject != 'Select Subject' && 
-           _roomController.text.trim().isNotEmpty;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    
-    // Initialize animation controller for logo
-    _animationController = AnimationController(
-      duration: const Duration(seconds: 3),
-      vsync: this,
-    )..repeat();
-    
-    // Add listener to room controller to filter suggestions
-    _roomController.addListener(_filterRooms);
-    
-    // Initialize with current class data if available
-    if (widget.currentClass != null) {
-      _selectedSubject = widget.currentClass!['subjectName'] ?? 'Select Subject';
-      _roomController.text = widget.currentClass!['room'] ?? '';
-    }
-  }
-  
-  void _filterRooms() {
-    final query = _roomController.text.trim().toUpperCase();
-    
-    if (query.isEmpty) {
-      setState(() {
-        _showRoomSuggestions = false;
-        _filteredRooms = [];
-      });
-      return;
-    }
-    
-    final allRooms = _getAllRooms();
-    final filtered = allRooms.where((room) {
-      return room.toUpperCase().startsWith(query);
-    }).toList();
-    
-    setState(() {
-      _filteredRooms = filtered;
-      _showRoomSuggestions = filtered.isNotEmpty;
-    });
-  }
-  
-  void _selectRoom(String room) {
-    _roomController.text = room;
-    setState(() {
-      _showRoomSuggestions = false;
-      _filteredRooms = [];
-    });
-    _roomFocusNode.unfocus();
-  }
-  
-  void _startSession() {
-    setState(() {
-      _sessionStarted = true;
-    });
-    _startCountdown();
-  }
-  
-  void _startCountdown() {
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted && _sessionStarted) {
-        final now = DateTime.now();
-        
-        if (widget.currentClassEnd != null && now.isBefore(widget.currentClassEnd!)) {
-          _classTimeLeft = widget.currentClassEnd!.difference(now);
-        } else {
-          _classTimeLeft = Duration.zero;
-        }
-        
-      setState(() {});
-        _startCountdown();
-      }
-    });
-  }
-  
-  String _formatDuration(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, "0");
-    String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
-    String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
-    
-    if (duration.inHours > 0) {
-      return "${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds";
-    } else {
-      return "$twoDigitMinutes:$twoDigitSeconds";
-    }
-  }
 
   @override
   void dispose() {
-    _animationController.dispose();
-    _roomController.dispose();
-    _roomFocusNode.dispose();
+    _searchController.dispose();
     super.dispose();
+  }
+  
+  String _getCurrentDate() {
+    final now = DateTime.now();
+    final monthName = ['January', 'February', 'March', 'April', 'May', 'June',
+                      'July', 'August', 'September', 'October', 'November', 'December'];
+    return 'Today, ${monthName[now.month - 1]} ${now.day}';
+  }
+
+  void _showCalendarModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.9,
+          decoration: BoxDecoration(
+            color: Colors.blue[900],
+            borderRadius: BorderRadius.circular(24),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Calendar',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, color: Colors.white),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              // Calendar
+              TableCalendar(
+                firstDay: DateTime.utc(2020, 1, 1),
+                lastDay: DateTime.utc(2030, 12, 31),
+                focusedDay: _focusedDay,
+                selectedDayPredicate: (day) {
+                  return isSameDay(_selectedDay, day);
+                },
+                onDaySelected: (selectedDay, focusedDay) {
+                  setState(() {
+                    _selectedDay = selectedDay;
+                    _focusedDay = focusedDay;
+                  });
+                  Navigator.pop(context);
+                },
+                onPageChanged: (focusedDay) {
+                  setState(() {
+                    _focusedDay = focusedDay;
+                  });
+                },
+                calendarFormat: _calendarFormat,
+                onFormatChanged: (format) {
+                  setState(() {
+                    _calendarFormat = format;
+                  });
+                },
+                headerStyle: HeaderStyle(
+                  formatButtonVisible: true,
+                  titleCentered: true,
+                  formatButtonShowsNext: false,
+                  formatButtonDecoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  formatButtonTextStyle: TextStyle(
+                    color: Colors.blue[900],
+                    fontWeight: FontWeight.bold,
+                  ),
+                  titleTextStyle: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  leftChevronIcon: const Icon(
+                    Icons.chevron_left,
+                    color: Colors.white,
+                  ),
+                  rightChevronIcon: const Icon(
+                    Icons.chevron_right,
+                    color: Colors.white,
+                  ),
+                ),
+                daysOfWeekStyle: const DaysOfWeekStyle(
+                  weekdayStyle: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  weekendStyle: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                calendarStyle: CalendarStyle(
+                  defaultTextStyle: const TextStyle(
+                    color: Colors.white,
+                  ),
+                  weekendTextStyle: const TextStyle(
+                    color: Colors.white,
+                  ),
+                  todayDecoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.3),
+                    shape: BoxShape.circle,
+                  ),
+                  selectedDecoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  markerDecoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  selectedTextStyle: TextStyle(
+                    color: Colors.blue[900],
+                    fontWeight: FontWeight.bold,
+                  ),
+                  todayTextStyle: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  outsideDaysVisible: false,
+                  outsideTextStyle: TextStyle(
+                    color: Colors.white.withOpacity(0.3),
+                  ),
+                ),
+                availableCalendarFormats: const {
+                  CalendarFormat.month: 'Month',
+                  CalendarFormat.week: 'Week',
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  bool isSameDay(DateTime? a, DateTime b) {
+    if (a == null) return false;
+    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
   @override
   Widget build(BuildContext context) {
-    // Show start session screen if session hasn't started
-    if (!_sessionStarted) {
-      return _buildStartSessionScreen(context);
-    }
-    
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: Container(
@@ -201,30 +233,30 @@ class _QrScreenState extends State<QrScreen> with SingleTickerProviderStateMixin
                 padding: const EdgeInsets.all(20),
                 child: Row(
                   children: [
-                    // Logo (replaces back button)
+                    // ACLC Logo
                     Image.asset(
-                                      'lib/images/aclc_logo.png',
+                      'lib/images/aclc_logo.png',
                       width: 50,
                       height: 50,
                       fit: BoxFit.contain,
                     ),
                     const SizedBox(width: 12),
-                    Expanded(
+                    // Create Session Title
+                    const Expanded(
                       child: Text(
-                        _showResult ? 'Attendance QR Code' : 'Generate QR',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 22,
-                            ),
+                        'Create Session',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 24,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 48), // Balance the layout
                   ],
                 ),
               ),
-
-              // Main content
+              
+              // Main Content with curved top
               Expanded(
                 child: Container(
                   decoration: const BoxDecoration(
@@ -234,7 +266,45 @@ class _QrScreenState extends State<QrScreen> with SingleTickerProviderStateMixin
                       topRight: Radius.circular(25),
                     ),
                   ),
-                  child: _showResult ? _buildResult(context) : _buildSessionContent(context),
+                  child: Stack(
+                    children: [
+                      SingleChildScrollView(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 8),
+                            // Subtitle
+                            Text(
+                              'Select a schedule to create a class session.',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            
+                            // Search Bar
+                            _buildSearchBar(),
+                            const SizedBox(height: 24),
+                            
+                            // Session Date Card
+                            _buildSessionDateCard(),
+                            const SizedBox(height: 24),
+                            
+                            // View Toggle
+                            _buildViewToggle(),
+                            const SizedBox(height: 20),
+                            
+                            // Schedule List
+                            _buildScheduleList(),
+                            const SizedBox(height: 100),
+                          ],
+                        ),
+                      ),
+                      _buildCreateButton(),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -245,702 +315,368 @@ class _QrScreenState extends State<QrScreen> with SingleTickerProviderStateMixin
     );
   }
 
-  Widget _buildStartSessionScreen(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF1E3A8A), // Deep blue
-              Color(0xFF3B82F6), // Blue
-              Color(0xFF60A5FA), // Light blue
-            ],
-          ),
+  Widget _buildSearchBar() {
+    return TextField(
+      controller: _searchController,
+      decoration: InputDecoration(
+        hintText: 'Search sections...',
+        prefixIcon: Icon(Icons.search_rounded, color: Colors.grey[600]),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!),
         ),
-        child: SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Logo with Animated Light Effect
-              AnimatedBuilder(
-                animation: _animationController,
-                builder: (context, child) {
-                  return Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Outer rotating light circles
-                      Transform.rotate(
-                        angle: _animationController.value * 2 * 3.14159,
-                        child: Container(
-                          width: 280,
-                          height: 280,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: SweepGradient(
-                              colors: [
-                                Colors.white.withOpacity(0.0),
-                                Colors.white.withOpacity(0.3),
-                                Colors.white.withOpacity(0.6),
-                                Colors.white.withOpacity(0.3),
-                                Colors.white.withOpacity(0.0),
-                              ],
-                              stops: const [0.0, 0.25, 0.5, 0.75, 1.0],
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Second rotating light (opposite direction)
-                      Transform.rotate(
-                        angle: -_animationController.value * 2 * 3.14159,
-                        child: Container(
-                          width: 260,
-                          height: 260,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: SweepGradient(
-                              colors: [
-                                Colors.white.withOpacity(0.0),
-                                Colors.white.withOpacity(0.2),
-                                Colors.white.withOpacity(0.4),
-                                Colors.white.withOpacity(0.2),
-                                Colors.white.withOpacity(0.0),
-                              ],
-                              stops: const [0.0, 0.25, 0.5, 0.75, 1.0],
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Logo container
-                      Container(
-                        padding: const EdgeInsets.all(40),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 30,
-                              spreadRadius: 5,
-                            ),
-                          ],
-                        ),
-                        child: Image.asset(
-                          'lib/images/aclc_logo.png',
-                          width: 150,
-                          height: 150,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-              
-              const SizedBox(height: 60),
-              
-              // Current Class Info
-              if (widget.currentClass != null) ...[
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 40),
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.3),
-                      width: 2,
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        widget.currentClass!['subjectName'] ?? 'Current Class',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        widget.currentClass!['subjectCode'] ?? '',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '${widget.currentClass!['room'] ?? 'TBA'}',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 40),
-              ],
-              
-              // Start Session Button
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 40),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(15),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
-                    child: Container(
-                      height: 56,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.white.withOpacity(0.2),
-                            Colors.white.withOpacity(0.1),
-                          ],
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                        ),
-                        borderRadius: BorderRadius.circular(15),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.3),
-                          width: 1.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 15,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: ElevatedButton(
-                        onPressed: _startSession,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                        ),
-                        child: const Text(
-                          'Start Session',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 20),
-              
-              // Back to Dashboard
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => const DashboardScreen()),
-                  );
-                },
-                child: Text(
-                  'Back to Dashboard',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            ],
-          ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!),
         ),
-      ),
-    );
-  }
-  
-  Widget _buildSessionContent(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Timer Card
-          if (widget.currentClass != null) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF1E3A8A).withOpacity(0.3),
-                    blurRadius: 15,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  const Icon(
-                    Icons.timer,
-                    color: Colors.white,
-                    size: 48,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Class Time Remaining',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    _formatDuration(_classTimeLeft),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 48,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    widget.currentClass!['subjectName'] ?? '',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    widget.currentClass!['room'] ?? '',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-          
-          // Generate QR Form
-          _buildForm(context),
-        ],
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.blue, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }
 
-  Widget _buildForm(BuildContext context) {
-    return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Subject',
-            style: TextStyle(
-              color: Colors.grey[700],
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedSubject,
-                isExpanded: true,
-                icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                items: _subjects
-                    .map((s) => DropdownMenuItem<String>(
-                          value: s,
-                          child: Text(s),
-                        ))
-                    .toList(),
-                onChanged: (v) => setState(() => _selectedSubject = v ?? _selectedSubject),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-          Text(
-            'Classroom Number',
-            style: TextStyle(
-              color: Colors.grey[700],
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: _roomController,
-                focusNode: _roomFocusNode,
-                decoration: InputDecoration(
-                  hintText: 'Enter classroom number',
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF3B82F6)),
-                  ),
-                ),
-              ),
-              // Room suggestions dropdown
-              if (_showRoomSuggestions && _filteredRooms.isNotEmpty)
-                Container(
-                  margin: const EdgeInsets.only(top: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE5E7EB)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  constraints: const BoxConstraints(maxHeight: 200),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    itemCount: _filteredRooms.length,
-                    itemBuilder: (context, index) {
-                      final room = _filteredRooms[index];
-                      return InkWell(
-                        onTap: () => _selectRoom(room),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.meeting_room,
-                                size: 18,
-                                color: Colors.grey[600],
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                room,
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  color: Colors.grey[800],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-            ],
-          ),
-
-          const SizedBox(height: 20),
-          _buildTimePickerCard(title: 'Start Time',
-              initialHour: _startHour,
-              initialMinute: _startMinute,
-              onHourChanged: (v) => setState(() => _startHour = v),
-              onMinuteChanged: (v) => setState(() => _startMinute = v)),
-
-          const SizedBox(height: 16),
-          _buildTimePickerCard(title: 'End Time',
-              initialHour: _endHour,
-              initialMinute: _endMinute,
-              onHourChanged: (v) => setState(() => _endHour = v),
-              onMinuteChanged: (v) => setState(() => _endMinute = v)),
-
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _isFormValid ? const Color(0xFF1E3A8A) : Colors.grey[400],
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-              onPressed: _isFormValid ? () => setState(() => _showResult = true) : null,
-              child: const Text('Generate QR Code'),
-            ),
-          ),
-        ],
-    );
-  }
-
-  Widget _buildTimePickerCard({
-    required String title,
-    required int initialHour,
-    required int initialMinute,
-    required ValueChanged<int> onHourChanged,
-    required ValueChanged<int> onMinuteChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            color: Colors.grey[700],
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          height: 150,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE5E7EB)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: _buildPicker(
-                  controller: FixedExtentScrollController(initialItem: initialHour),
-                  count: 24,
-                  onChanged: onHourChanged,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildPicker(
-                  controller: FixedExtentScrollController(initialItem: initialMinute),
-                  count: 60,
-                  onChanged: onMinuteChanged,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPicker({
-    required FixedExtentScrollController controller,
-    required int count,
-    required ValueChanged<int> onChanged,
-  }) {
-    return Listener(
-      onPointerSignal: (_) {},
-      child: CupertinoPicker(
-        scrollController: controller,
-        itemExtent: 40,
-        magnification: 1.15,
-        squeeze: 1.05,
-        useMagnifier: true,
-        // Transparent overlay so item content colors remain visible
-        selectionOverlay: const CupertinoPickerDefaultSelectionOverlay(
-          background: Colors.transparent,
-        ),
-        onSelectedItemChanged: onChanged,
-        children: List.generate(
-          count,
-          (i) => Center(child: _wheelItem(i.toString().padLeft(2, '0'))),
-        ),
-      ),
-    );
-  }
-
-  Widget _wheelItem(String text) {
+  Widget _buildSessionDateCard() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF3F4F6),
-        borderRadius: BorderRadius.circular(10),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
       ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontWeight: FontWeight.w700,
-          color: Color(0xFF111827),
-          fontSize: 16,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildResult(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
+      child: Row(
         children: [
-          Container(
-            height: 240,
-            width: 240,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: const Center(
-              child: Icon(Icons.qr_code_2, size: 180, color: Color(0xFF1F2937)),
-            ),
-          ),
-
-          const SizedBox(height: 20),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
+          Icon(Icons.calendar_today_rounded, color: const Color(0xFF1E3A8A), size: 24),
+          const SizedBox(width: 12),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _detailRow('Subject', _selectedSubject == 'Select Subject' ? '—' : _selectedSubject),
-                _detailRow('Room', _roomController.text.isEmpty ? '—' : _roomController.text),
-                _detailRow('Start Time', _formatTime(_startHour, _startMinute)),
-                _detailRow('End Time', _formatTime(_endHour, _endMinute)),
+                Text(
+                  'Session Date',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _getCurrentDate(),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
               ],
             ),
           ),
-
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF1E3A8A),
-                    side: const BorderSide(color: Color(0xFF1E3A8A)),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                  onPressed: () => _showSnack('Share tapped'),
-                  icon: const Icon(Icons.share_outlined),
-                  label: const Text('Share'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3B82F6),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                  onPressed: () => _showSnack('Saved to gallery'),
-                  icon: const Icon(Icons.save_alt_outlined),
-                  label: const Text('Save'),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-          TextButton(
-            onPressed: () => setState(() => _showResult = false),
-            child: const Text('Generate another QR'),
+          IconButton(
+            icon: const Icon(Icons.edit_calendar_rounded, color: Color(0xFF1E3A8A)),
+            onPressed: () => _showCalendarModal(context),
           ),
         ],
       ),
     );
   }
 
-  Widget _detailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+  Widget _buildViewToggle() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              label,
-              style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.w600),
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _viewMode = 'list';
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _viewMode == 'list' ? const Color(0xFF1E3A8A) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.view_list_rounded,
+                      color: _viewMode == 'list' ? Colors.white : Colors.grey[600],
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'List View',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: _viewMode == 'list' ? Colors.white : Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-          Text(
-            value,
-            style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w700),
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _viewMode = 'grid';
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _viewMode == 'grid' ? const Color(0xFF1E3A8A) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.grid_view_rounded,
+                      color: _viewMode == 'grid' ? Colors.white : Colors.grey[600],
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Grid View',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: _viewMode == 'grid' ? Colors.white : Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  String _formatTime(int hour, int minute) {
-    final int h = hour % 24;
-    final String amPm = h >= 12 ? 'PM' : 'AM';
-    final int std = h % 12 == 0 ? 12 : h % 12;
-    final String mm = minute.toString().padLeft(2, '0');
-    return '$std:$mm $amPm';
+  Widget _buildScheduleList() {
+    if (_viewMode == 'grid') {
+      return GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 1.0,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+        ),
+        itemCount: _schedules.length,
+        itemBuilder: (context, index) {
+          final schedule = _schedules[index];
+          final isSelected = _selectedSchedule == '${schedule['code']} - ${schedule['name']}';
+          return Container(
+            decoration: BoxDecoration(
+              color: isSelected ? const Color(0xFF1E3A8A) : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isSelected ? const Color(0xFF1E3A8A) : Colors.grey[300]!,
+                width: isSelected ? 2 : 1,
+              ),
+            ),
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  _selectedSchedule = '${schedule['code']} - ${schedule['name']}';
+                });
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Icon(
+                          Icons.calendar_today_rounded,
+                          color: isSelected ? Colors.white : const Color(0xFF1E3A8A),
+                          size: 24,
+                        ),
+                        Container(
+                          width: 20,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isSelected ? Colors.white : Colors.grey[400]!,
+                              width: 2,
+                            ),
+                            color: isSelected ? Colors.white : Colors.transparent,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '${schedule['code']} - ${schedule['name']}',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isSelected ? Colors.white : Colors.black87,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: Text(
+                        '${schedule['days']} ${schedule['time']}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isSelected ? Colors.white70 : Colors.grey[600],
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    } else {
+      return Column(
+        children: _schedules.map((schedule) {
+          final isSelected = _selectedSchedule == '${schedule['code']} - ${schedule['name']}';
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isSelected ? const Color(0xFF1E3A8A) : Colors.grey[300]!,
+                width: isSelected ? 2 : 1,
+              ),
+            ),
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  _selectedSchedule = '${schedule['code']} - ${schedule['name']}';
+                });
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_today_rounded, color: Color(0xFF1E3A8A), size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${schedule['code']} - ${schedule['name']}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${schedule['days']} ${schedule['time']}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                      Radio<String>(
+                      value: '${schedule['code']} - ${schedule['name']}',
+                      groupValue: _selectedSchedule,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedSchedule = value;
+                        });
+                      },
+                      activeColor: const Color(0xFF1E3A8A),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      );
+    }
   }
 
-  void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+  Widget _buildCreateButton() {
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: ElevatedButton(
+            onPressed: _selectedSchedule != null ? () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SessionDetailsScreen(
+                    subject: _selectedSchedule!,
+                    scheduleTime: _schedules.firstWhere((s) => 
+                      '${s['code']} - ${s['name']}' == _selectedSchedule
+                    )['time'],
+                  ),
+                ),
+              );
+            } : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E3A8A),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              elevation: 0,
+            ),
+            child: const Text(
+              'Create Session',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -1000,4 +736,629 @@ class _QrScreenState extends State<QrScreen> with SingleTickerProviderStateMixin
   }
 }
 
+class SessionDetailsScreen extends StatefulWidget {
+  final String subject;
+  final String scheduleTime;
 
+  const SessionDetailsScreen({
+    super.key,
+    required this.subject,
+    required this.scheduleTime,
+  });
+
+  @override
+  State<SessionDetailsScreen> createState() => _SessionDetailsScreenState();
+}
+
+class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
+  final List<String> _rooms = [
+    'Room 301 (Scheduled)',
+    'Room 302',
+    'Room 303',
+    'Short Course Laboratory',
+  ];
+  
+  String _scheduledRoom = 'Room 301 (Scheduled)';
+  String _currentRoom = 'Room 301 (Scheduled)';
+  String? _sessionId;
+  DateTime? _sessionStartTime;
+  String _instructorName = 'Jovelyn Comaingking';
+  final Uuid _uuid = const Uuid();
+
+  @override
+  void initState() {
+    super.initState();
+  }
+  
+  bool get _hasRoomChanged => _currentRoom != _scheduledRoom;
+  
+  String _formatTime(DateTime time) {
+    final hour = time.hour;
+    final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+    final period = hour >= 12 ? 'PM' : 'AM';
+    return '${displayHour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')} $period';
+  }
+  
+  void _startSession() {
+    setState(() {
+      _sessionId = _uuid.v4();
+      _sessionStartTime = DateTime.now();
+    });
+    _showQrCodeModal(context);
+  }
+  
+  String _generateQrData() {
+    final sessionData = {
+      'sessionId': _sessionId ?? _uuid.v4(),
+      'subject': widget.subject,
+      'scheduleTime': widget.scheduleTime,
+      'room': _currentRoom,
+      'instructor': _instructorName,
+      'startTime': _sessionStartTime?.toIso8601String() ?? DateTime.now().toIso8601String(),
+      'status': 'active',
+    };
+    return jsonEncode(sessionData);
+  }
+  
+  void _showQrCodeModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        elevation: 8,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          width: MediaQuery.of(context).size.width * 0.9,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  const Text(
+                    'QR Code',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Positioned(
+                    right: 0,
+                    child: IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              // QR Code
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: QrImageView(
+                  data: _generateQrData(),
+                  version: QrVersions.auto,
+                  size: 250,
+                  backgroundColor: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Session Details
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildQrDetailRow('Subject', widget.subject),
+                    const SizedBox(height: 8),
+                    _buildQrDetailRow('Room', _currentRoom),
+                    const SizedBox(height: 8),
+                    _buildQrDetailRow('Schedule', widget.scheduleTime),
+                    const SizedBox(height: 8),
+                    _buildQrDetailRow('Instructor', _instructorName),
+                    const SizedBox(height: 8),
+                    _buildQrDetailRow(
+                      'Start Time',
+                      _sessionStartTime?.toString().substring(0, 16) ?? DateTime.now().toString().substring(0, 16),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Edit Room Button
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    _showEditRoomModal(context);
+                  },
+                  icon: const Icon(Icons.edit, size: 20),
+                  label: const Text(
+                    'Edit Room',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white, width: 2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Close Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF1E3A8A),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Close',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildQrDetailRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 80,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.white.withOpacity(0.8),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showEditRoomModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        title: const Text(
+          'Change Room',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        content: Container(
+          width: MediaQuery.of(context).size.width * 0.8,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Select a room',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: DropdownButton<String>(
+                  value: _currentRoom,
+                  isExpanded: true,
+                  underline: const SizedBox(),
+                  items: _rooms.map((room) => DropdownMenuItem<String>(
+                    value: room,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        room,
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  )).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _currentRoom = value!;
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E3A8A),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Save',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF1E3A8A), // Deep blue
+              Color(0xFF3B82F6), // Blue
+              Color(0xFF60A5FA), // Light blue
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    // Back Button
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const SizedBox(width: 12),
+                    // ACLC Logo
+                    Image.asset(
+                      'lib/images/aclc_logo.png',
+                      width: 50,
+                      height: 50,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(width: 12),
+                    // Session Details Title
+                    const Expanded(
+                      child: Text(
+                        'Session Details',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 24,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Main Content with curved top
+              Expanded(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(25),
+                      topRight: Radius.circular(25),
+                    ),
+                  ),
+                  child: Stack(
+                    children: [
+                      // Scrollable Content
+                      SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(24, 24, 24, 170),
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 8),
+                            
+                            // Course Title
+                            Center(
+                              child: Text(
+                                widget.subject,
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                        
+                            // Session Information
+                            _buildInfoRow(
+                              icon: Icons.access_time,
+                              mainText: widget.scheduleTime,
+                              subText: '90 minutes',
+                              iconColor: const Color(0xFF1E3A8A),
+                            ),
+                            const SizedBox(height: 20),
+                            
+                            _buildInfoRow(
+                              icon: Icons.location_on,
+                              mainText: 'Short Course Laboratory',
+                              subText: 'Originally Room 301',
+                              iconColor: const Color(0xFF1E3A8A),
+                              badge: _hasRoomChanged ? 'Room Changed' : null,
+                            ),
+                            const SizedBox(height: 20),
+                            
+                            _buildInfoRow(
+                              icon: Icons.play_circle,
+                              mainText: 'Session Active',
+                              subText: 'Status',
+                              iconColor: Colors.green[700]!,
+                            ),
+                            const SizedBox(height: 20),
+                            
+                            _buildInfoRow(
+                              icon: Icons.history,
+                              mainText: _sessionStartTime != null 
+                                  ? _formatTime(_sessionStartTime!)
+                                  : 'Not started',
+                              subText: 'Session Start Time',
+                              iconColor: const Color(0xFF1E3A8A),
+                            ),
+                            const SizedBox(height: 20),
+                            
+                            _buildInfoRow(
+                              icon: Icons.person,
+                              mainText: 'Jovelyn Comaingking',
+                              subText: 'Instructor',
+                              iconColor: const Color(0xFF1E3A8A),
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      // Fixed Buttons at Bottom
+                      Positioned(
+                        bottom: 30,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, -2),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              // Generate QR Code Button
+                              SizedBox(
+                                width: double.infinity,
+                                height: 50,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    // Start session first if not started
+                                    if (_sessionId == null) {
+                                      _startSession();
+                                    } else {
+                                      _showQrCodeModal(context);
+                                    }
+                                  },
+                                  icon: const Icon(Icons.qr_code_2, size: 24),
+                                  label: const Text(
+                                    'Generate QR Code',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF1E3A8A),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              // End Session Button
+                              SizedBox(
+                                width: double.infinity,
+                                height: 50,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    // TODO: End Session
+                                  },
+                                  icon: const Icon(Icons.stop_circle_outlined, size: 24),
+                                  label: const Text(
+                                    'End Session',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow({
+    required IconData icon,
+    required String mainText,
+    required String subText,
+    required Color iconColor,
+    String? badge,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: iconColor.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: iconColor, size: 24),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                mainText,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Text(
+                    subText,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  if (badge != null) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[900],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        badge,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+}

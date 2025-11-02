@@ -1,5 +1,6 @@
 // lib/services/api_service.dart
 import 'package:http/http.dart' as http;
+import 'dart:async';
 import 'dart:convert';
 import '../utils/constants.dart';
 import 'storage_service.dart';
@@ -12,13 +13,89 @@ class ApiService {
   }
   
   ApiService._internal();
+
+  // Map to store cancellable requests
+  final Map<String, http.Client> _activeRequests = {};
+  
+  // Generate unique request ID
+  String _generateRequestId() => DateTime.now().millisecondsSinceEpoch.toString();
+
+  // Cancel a request by ID
+  void cancelRequest(String requestId) {
+    _activeRequests[requestId]?.close();
+    _activeRequests.remove(requestId);
+  }
+
+  // Cancel all active requests
+  void cancelAllRequests() {
+    for (var client in _activeRequests.values) {
+      client.close();
+    }
+    _activeRequests.clear();
+  }
+
+  // Helper method to make cancellable HTTP requests
+  Future<http.Response> _makeRequest({
+    required String method,
+    required Uri uri,
+    Map<String, String>? headers,
+    Object? body,
+    String? requestId,
+  }) async {
+    final client = http.Client();
+    final reqId = requestId ?? _generateRequestId();
+    _activeRequests[reqId] = client;
+
+    try {
+      http.Response response;
+      switch (method.toUpperCase()) {
+        case 'GET':
+          response = await client.get(uri, headers: headers).timeout(
+            ApiConstants.connectionTimeout,
+            onTimeout: () => throw TimeoutException('Connection timeout'),
+          );
+          break;
+        case 'POST':
+          response = await client.post(uri, headers: headers, body: body).timeout(
+            ApiConstants.connectionTimeout,
+            onTimeout: () => throw TimeoutException('Connection timeout'),
+          );
+          break;
+        case 'PATCH':
+          response = await client.patch(uri, headers: headers, body: body).timeout(
+            ApiConstants.connectionTimeout,
+            onTimeout: () => throw TimeoutException('Connection timeout'),
+          );
+          break;
+        case 'PUT':
+          response = await client.put(uri, headers: headers, body: body).timeout(
+            ApiConstants.connectionTimeout,
+            onTimeout: () => throw TimeoutException('Connection timeout'),
+          );
+          break;
+        case 'DELETE':
+          response = await client.delete(uri, headers: headers).timeout(
+            ApiConstants.connectionTimeout,
+            onTimeout: () => throw TimeoutException('Connection timeout'),
+          );
+          break;
+        default:
+          throw Exception('Unsupported HTTP method: $method');
+      }
+      return response;
+    } finally {
+      _activeRequests.remove(reqId);
+      client.close();
+    }
+  }
   
   // ==================== AUTH METHODS ====================
   
-  Future<Map<String, dynamic>> login(String username, String password) async {
+  Future<Map<String, dynamic>> login(String username, String password, {String? requestId}) async {
     try {
-      final response = await http.post(
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.loginEndpoint}'),
+      final response = await _makeRequest(
+        method: 'POST',
+        uri: Uri.parse('${ApiConstants.baseUrl}${ApiConstants.loginEndpoint}'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -27,9 +104,7 @@ class ApiService {
           'username': username,
           'password': password,
         }),
-      ).timeout(
-        ApiConstants.connectionTimeout,
-        onTimeout: () => throw Exception('Connection timeout'),
+        requestId: requestId,
       );
 
       print('Login Status Code: ${response.statusCode}');
@@ -50,11 +125,13 @@ class ApiService {
   Future<Map<String, dynamic>> register(
     String username,
     String email,
-    String password,
-  ) async {
+    String password, {
+    String? requestId,
+  }) async {
     try {
-      final response = await http.post(
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.registerEndpoint}'),
+      final response = await _makeRequest(
+        method: 'POST',
+        uri: Uri.parse('${ApiConstants.baseUrl}${ApiConstants.registerEndpoint}'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -64,9 +141,7 @@ class ApiService {
           'email': email,
           'password': password,
         }),
-      ).timeout(
-        ApiConstants.connectionTimeout,
-        onTimeout: () => throw Exception('Connection timeout'),
+        requestId: requestId,
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -80,10 +155,11 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> refreshToken(String refreshToken) async {
+  Future<Map<String, dynamic>> refreshToken(String refreshToken, {String? requestId}) async {
     try {
-      final response = await http.post(
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.refreshEndpoint}'),
+      final response = await _makeRequest(
+        method: 'POST',
+        uri: Uri.parse('${ApiConstants.baseUrl}${ApiConstants.refreshEndpoint}'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -91,9 +167,7 @@ class ApiService {
         body: jsonEncode({
           'refreshToken': refreshToken,
         }),
-      ).timeout(
-        ApiConstants.connectionTimeout,
-        onTimeout: () => throw Exception('Connection timeout'),
+        requestId: requestId,
       );
 
       if (response.statusCode == 200) {
@@ -106,17 +180,16 @@ class ApiService {
     }
   }
 
-  Future<void> logout(String accessToken) async {
+  Future<void> logout(String accessToken, {String? requestId}) async {
     try {
-      await http.post(
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.logoutEndpoint}'),
+      await _makeRequest(
+        method: 'POST',
+        uri: Uri.parse('${ApiConstants.baseUrl}${ApiConstants.logoutEndpoint}'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $accessToken',
         },
-      ).timeout(
-        ApiConstants.connectionTimeout,
-        onTimeout: () => throw Exception('Connection timeout'),
+        requestId: requestId,
       );
     } catch (e) {
       throw Exception('Network error: $e');
@@ -125,8 +198,9 @@ class ApiService {
 
   // ==================== INSTRUCTOR METHODS ====================
 
-  /// Get instructor profile
-  Future<Map<String, dynamic>> getInstructorProfile() async {
+  /// Get user profile from /api/account/me endpoint
+  /// Returns UserProfileResponseDto with nested instructorProfile or studentProfile
+  Future<Map<String, dynamic>> getInstructorProfile({String? requestId}) async {
     try {
       final token = await StorageService.getToken();
       
@@ -137,19 +211,18 @@ class ApiService {
         };
       }
 
-      final url = '${ApiConstants.baseUrl}/api/instructors/profile';
-      print('🌐 Fetching instructor profile from: $url');
+      final url = '${ApiConstants.baseUrl}/api/account/me';
+      print('🌐 Fetching user profile from: $url');
 
-      final response = await http.get(
-        Uri.parse(url),
+      final response = await _makeRequest(
+        method: 'GET',
+        uri: Uri.parse(url),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-      ).timeout(
-        ApiConstants.connectionTimeout,
-        onTimeout: () => throw Exception('Connection timeout'),
+        requestId: requestId,
       );
 
       print('📊 Profile Response Status: ${response.statusCode}');
@@ -176,12 +249,13 @@ class ApiService {
     }
   }
 
-  /// Update instructor profile
+  /// Update user profile using /api/account/profile endpoint
   Future<Map<String, dynamic>> updateInstructorProfile({
     required int instructorId,
     String? email,
     String? firstname,
     String? lastname,
+    String? requestId,
   }) async {
     try {
       final token = await StorageService.getToken();
@@ -193,8 +267,8 @@ class ApiService {
         };
       }
 
-      final url = '${ApiConstants.baseUrl}/api/instructors/$instructorId';
-      print('🌐 Updating instructor profile at: $url');
+      final url = '${ApiConstants.baseUrl}/api/account/profile';
+      print('🌐 Updating user profile at: $url');
       
       // Build update body - only include non-null fields
       final Map<String, dynamic> updateData = {};
@@ -204,17 +278,16 @@ class ApiService {
       
       print('📝 Update data: $updateData');
 
-      final response = await http.patch(
-        Uri.parse(url),
+      final response = await _makeRequest(
+        method: 'PATCH',
+        uri: Uri.parse(url),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
         body: json.encode(updateData),
-      ).timeout(
-        ApiConstants.connectionTimeout,
-        onTimeout: () => throw Exception('Connection timeout'),
+        requestId: requestId,
       );
 
       print('📊 Update Response Status: ${response.statusCode}');
@@ -222,10 +295,12 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        // The response structure is: {success, message, updatedProfile}
+        // Extract updatedProfile from the response
         return {
-          'success': true,
-          'message': 'Profile updated successfully',
-          'data': data,
+          'success': data['success'] ?? true,
+          'message': data['message'] ?? 'Profile updated successfully',
+          'data': data['updatedProfile'], // Extract updatedProfile
         };
       } else if (response.statusCode == 400) {
         final errorData = json.decode(response.body);
@@ -236,7 +311,7 @@ class ApiService {
       } else if (response.statusCode == 404) {
         return {
           'success': false,
-          'error': 'Instructor not found',
+          'error': 'Profile not found',
         };
       } else {
         return {
@@ -257,7 +332,7 @@ class ApiService {
 
   /// Get all sections/subjects for the logged-in instructor
   /// Groups schedules by section name and shows subjects under each section
-  Future<Map<String, dynamic>> getInstructorSections() async {
+  Future<Map<String, dynamic>> getInstructorSections({String? requestId}) async {
     try {
       final token = await StorageService.getToken();
       final instructorId = await StorageService.getInstructorId();
@@ -280,16 +355,15 @@ class ApiService {
       final url = '${ApiConstants.baseUrl}/api/schedules';
       print('🌐 Fetching instructor schedules from: $url');
 
-      final response = await http.get(
-        Uri.parse(url),
+      final response = await _makeRequest(
+        method: 'GET',
+        uri: Uri.parse(url),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-      ).timeout(
-        ApiConstants.connectionTimeout,
-        onTimeout: () => throw Exception('Connection timeout'),
+        requestId: requestId,
       );
 
       print('📊 Response Status: ${response.statusCode}');
@@ -425,7 +499,7 @@ class ApiService {
 
   /// Get students for a specific section
   /// This gets ALL students in a section
-  Future<Map<String, dynamic>> getSectionStudents(int sectionId) async {
+  Future<Map<String, dynamic>> getSectionStudents(int sectionId, {String? requestId}) async {
     try {
       final token = await StorageService.getToken();
       
@@ -440,16 +514,15 @@ class ApiService {
       final url = '${ApiConstants.baseUrl}/api/sections/$sectionId/all-students';
       print('🌐 Fetching students from: $url');
 
-      final response = await http.get(
-        Uri.parse(url),
+      final response = await _makeRequest(
+        method: 'GET',
+        uri: Uri.parse(url),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-      ).timeout(
-        ApiConstants.connectionTimeout,
-        onTimeout: () => throw Exception('Connection timeout'),
+        requestId: requestId,
       );
 
       print('📊 Students Response Status: ${response.statusCode}');
@@ -507,7 +580,7 @@ class ApiService {
   }
 
   /// Get section details
-  Future<Map<String, dynamic>> getSectionDetails(int sectionId) async {
+  Future<Map<String, dynamic>> getSectionDetails(int sectionId, {String? requestId}) async {
     try {
       final token = await StorageService.getToken();
       
@@ -521,16 +594,15 @@ class ApiService {
       final url = '${ApiConstants.baseUrl}/api/sections/$sectionId';
       print('🌐 Fetching section details from: $url');
 
-      final response = await http.get(
-        Uri.parse(url),
+      final response = await _makeRequest(
+        method: 'GET',
+        uri: Uri.parse(url),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-      ).timeout(
-        ApiConstants.connectionTimeout,
-        onTimeout: () => throw Exception('Connection timeout'),
+        requestId: requestId,
       );
 
       print('📊 Section Details Response Status: ${response.statusCode}');
