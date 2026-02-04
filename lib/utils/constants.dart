@@ -1,25 +1,26 @@
-// lib/utils/constants.dart
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class ApiConstants {
-  // OPTION 1: Try HTTPS first (matches what Scalar is using)
-  static const String baseUrl = 'https://localhost:8081';
-  
-  // OPTION 2: If HTTPS doesn't work, try HTTP on port 5142
-  // static const String baseUrl = 'http://localhost:5142';
-  
-  // OPTION 3: For Physical Device (update IP if needed)
-  // static const String baseUrl = 'http://192.168.254.106:5142';
-  
+  static String get baseUrl {
+    String url = dotenv.env['API_URL'] ?? 'https://localhost:8081';
+    if (url.endsWith('/api')) {
+      url = url.substring(0, url.length - 4);
+    }
+    return url;
+  }
+
   // Auth endpoints
   static const String loginEndpoint = '/api/account/login';
   static const String registerEndpoint = '/api/account/register';
   static const String refreshEndpoint = '/api/account/refresh';
   static const String logoutEndpoint = '/api/account/logout';
-  
+
   // Section endpoints
   static const String sectionsEndpoint = '/api/sections';
   static String sectionDetailsEndpoint(int id) => '/api/sections/$id';
-  static String sectionStudentsEndpoint(int id) => '/api/sections/$id/active-students';
-  
+  static String sectionStudentsEndpoint(int id) =>
+      '/api/sections/$id/active-students';
+
   // Timeout durations
   static const Duration connectionTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 15);

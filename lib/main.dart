@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'services/storage_service.dart';
@@ -7,12 +8,14 @@ import 'widgets/error_boundary.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await dotenv.load(fileName: ".env");
+    print('✅ .env loaded: ${dotenv.env['API_URL']}');
+  } catch (e) {
+    print('❌ Failed to load .env: $e');
+  }
   await StorageService.init();
-  runApp(
-    const ProviderScope(
-      child: MyApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends ConsumerStatefulWidget {
@@ -34,11 +37,11 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   Future<void> _checkAuth() async {
     final isAuthenticated = await StorageService.isAuthenticated();
-    
+
     if (mounted) {
       setState(() {
-        _initialRoute = isAuthenticated 
-            ? const DashboardScreen() 
+        _initialRoute = isAuthenticated
+            ? const DashboardScreen()
             : const LoginScreen();
         _isCheckingAuth = false;
       });
@@ -64,9 +67,7 @@ class _MyAppState extends ConsumerState<MyApp> {
               ),
             ),
             child: const Center(
-              child: CircularProgressIndicator(
-                color: Colors.white,
-              ),
+              child: CircularProgressIndicator(color: Colors.white),
             ),
           ),
         ),
